@@ -1,7 +1,8 @@
 // ─────────────────────────────────────────────────────────────
-//  telegram-report · Telegram webhook with per-location selection.
+//  telegram-report · Telegram webhook with per-location selection
+//  and day / week / month periods.
 //
-//  Reply keyboard: «📊 Отчёт за сегодня» / «📦 Остатки»
+//  Reply keyboard: «📊 Сегодня» «📈 Неделя» «🗓 Месяц» / «📦 Остатки»
 //  → bot shows inline buttons with the list of points (+ «Все точки»)
 //  → tap a point to get its report / stock.
 //
@@ -20,11 +21,14 @@ const KEY   = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const TZ = "Asia/Tashkent";
 const TZ_OFFSET_MS = 5 * 60 * 60 * 1000; // UTC+5, no DST
 
+type Period = "today" | "week" | "month";
+const PERIOD_LABEL: Record<Period, string> = { today: "сегодня", week: "неделю", month: "месяц" };
+
 const fmt = (n: number) => Number(n || 0).toLocaleString("ru-RU");
 
 const KEYBOARD = {
   reply_markup: {
-    keyboard: [["📊 Отчёт за сегодня"], ["📦 Остатки"]],
+    keyboard: [["📊 Сегодня", "📈 Неделя", "🗓 Месяц"], ["📦 Остатки"]],
     resize_keyboard: true,
     is_persistent: true,
   },
@@ -44,32 +48,45 @@ async function tg(method: string, body: Record<string, unknown>) {
 const sendMessage = (chatId: string | number, text: string, extra: Record<string, unknown> = {}) =>
   tg("sendMessage", { chat_id: chatId, text, parse_mode: "HTML", ...extra });
 
-function startOfTodayUtc(): Date {
+// Start of the given period in Asia/Tashkent, expressed as a UTC Date
+function periodStartUtc(period: Period): Date {
   const shifted = new Date(Date.now() + TZ_OFFSET_MS);
   const y = shifted.getUTCFullYear(), m = shifted.getUTCMonth(), d = shifted.getUTCDate();
-  return new Date(Date.UTC(y, m, d, 0, 0, 0) - TZ_OFFSET_MS);
+  if (period === "month") return new Date(Date.UTC(y, m, 1, 0, 0, 0) - TZ_OFFSET_MS);
+  if (period === "week") {
+    const dow = shifted.getUTCDay();           // 0=Sun..6=Sat
+    const diff = dow === 0 ? 6 : dow - 1;        // days back to Monday
+    return new Date(Date.UTC(y, m, d - diff, 0, 0, 0) - TZ_OFFSET_MS);
+  }
+  return new Date(Date.UTC(y, m, d, 0, 0, 0) - TZ_OFFSET_MS); // today
 }
 
-const todayStr = () =>
-  new Date().toLocaleDateString("ru-RU", { timeZone: TZ, day: "2-digit", month: "2-digit", year: "numeric" });
+const fmtDate = (d: Date) =>
+  d.toLocaleDateString("ru-RU", { timeZone: TZ, day: "2-digit", month: "2-digit", year: "numeric" });
+const todayStr = () => fmtDate(new Date());
+
+function dateLine(period: Period, since: Date): string {
+  return period === "today" ? `📅 ${todayStr()}` : `📅 ${fmtDate(since)} — ${todayStr()}`;
+}
 
 async function getLocations() {
   const { data } = await supa().from("locations").select("id, name").order("created_at");
   return data || [];
 }
 
-// Inline keyboard: one button per point + «Все точки»
-async function locationKeyboard(prefix: "report" | "stock") {
+// Inline keyboard: one button per point + «Все точки». Period is carried in callback_data.
+async function locationKeyboard(prefix: "report" | "stock", period?: Period) {
   const locs = await getLocations();
-  const rows = locs.map((l) => [{ text: `📍 ${l.name}`, callback_data: `${prefix}:${l.id}` }]);
-  rows.push([{ text: "🌐 Все точки", callback_data: `${prefix}:all` }]);
+  const suffix = period ? `:${period}` : "";
+  const rows = locs.map((l) => [{ text: `📍 ${l.name}`, callback_data: `${prefix}:${l.id}${suffix}` }]);
+  rows.push([{ text: "🌐 Все точки", callback_data: `${prefix}:all${suffix}` }]);
   return { reply_markup: { inline_keyboard: rows } };
 }
 
 // ── REPORT ──────────────────────────────────────────────────
-async function reportForLocation(locationId: string): Promise<string> {
+async function reportForLocation(locationId: string, period: Period): Promise<string> {
   const supabase = supa();
-  const since = startOfTodayUtc();
+  const since = periodStartUtc(period);
 
   const { data: loc } = await supabase.from("locations").select("name").eq("id", locationId).single();
   const { data: orders } = await supabase.from("orders").select("*")
@@ -88,8 +105,8 @@ async function reportForLocation(locationId: string): Promise<string> {
     .eq("location_id", locationId).lt("quantity", 5).order("quantity", { ascending: true });
 
   const lines: string[] = [];
-  lines.push(`📊 <b>Отчёт за сегодня</b> — ${loc?.name || "точка"}`);
-  lines.push(`📅 ${todayStr()}`);
+  lines.push(`📊 <b>Отчёт за ${PERIOD_LABEL[period]}</b> — ${loc?.name || "точка"}`);
+  lines.push(dateLine(period, since));
   lines.push("");
   lines.push(`💰 Выручка: <b>${fmt(revenue)} сум</b>`);
   lines.push(`🛒 Заказов: <b>${paid.length}</b>`);
@@ -106,9 +123,9 @@ async function reportForLocation(locationId: string): Promise<string> {
   return lines.join("\n");
 }
 
-async function reportAll(): Promise<string> {
+async function reportAll(period: Period): Promise<string> {
   const supabase = supa();
-  const since = startOfTodayUtc();
+  const since = periodStartUtc(period);
 
   const locs = await getLocations();
   const nameById = new Map(locs.map((l) => [l.id, l.name]));
@@ -117,7 +134,6 @@ async function reportAll(): Promise<string> {
     .eq("status", "paid").gte("created_at", since.toISOString());
   const paid = orders || [];
 
-  // Per-location aggregation
   const byLoc = new Map<string, { revenue: number; count: number }>();
   const tally = new Map<string, number>();
   let grandRevenue = 0;
@@ -134,10 +150,9 @@ async function reportAll(): Promise<string> {
   const top = [...tally.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
 
   const lines: string[] = [];
-  lines.push(`📊 <b>Отчёт за сегодня</b> — Все точки`);
-  lines.push(`📅 ${todayStr()}`);
+  lines.push(`📊 <b>Отчёт за ${PERIOD_LABEL[period]}</b> — Все точки`);
+  lines.push(dateLine(period, since));
   lines.push("");
-  // ensure every known location appears (even with 0 sales)
   const keys = new Set<string>([...byLoc.keys(), ...locs.map((l) => l.id)]);
   for (const key of keys) {
     const acc = byLoc.get(key) || { revenue: 0, count: 0 };
@@ -208,9 +223,10 @@ Deno.serve(async (req) => {
       const data: string = cq.data || "";
       await tg("answerCallbackQuery", { callback_query_id: cq.id });
       if (chatId) {
-        const [kind, target] = data.split(":");
+        const [kind, target, period] = data.split(":");
         if (kind === "report") {
-          await sendMessage(chatId, target === "all" ? await reportAll() : await reportForLocation(target), KEYBOARD);
+          const p = (period as Period) || "today";
+          await sendMessage(chatId, target === "all" ? await reportAll(p) : await reportForLocation(target, p), KEYBOARD);
         } else if (kind === "stock") {
           await sendMessage(chatId, target === "all" ? await stockAll() : await stockForLocation(target), KEYBOARD);
         }
@@ -224,12 +240,16 @@ Deno.serve(async (req) => {
     if (!chatId) return new Response("ok");
 
     const low = text.toLowerCase();
-    const isReport = low.startsWith("/report") || text.includes("Отчёт");
-    const isStock  = low.startsWith("/stock")  || text.includes("Остатки");
-    const isStart  = low.startsWith("/start")  || low.startsWith("/menu");
+    let period: Period | null = null;
+    if (low.startsWith("/month") || text.includes("Месяц")) period = "month";
+    else if (low.startsWith("/week") || text.includes("Неделя")) period = "week";
+    else if (low.startsWith("/report") || text.includes("Сегодня") || text.includes("Отчёт")) period = "today";
 
-    if (isReport) {
-      await sendMessage(chatId, "📊 Выберите точку для отчёта:", await locationKeyboard("report"));
+    const isStock = low.startsWith("/stock") || text.includes("Остатки");
+    const isStart = low.startsWith("/start") || low.startsWith("/menu");
+
+    if (period) {
+      await sendMessage(chatId, `📊 Отчёт за ${PERIOD_LABEL[period]} — выберите точку:`, await locationKeyboard("report", period));
     } else if (isStock) {
       await sendMessage(chatId, "📦 Выберите точку для остатков:", await locationKeyboard("stock"));
     } else if (isStart) {
