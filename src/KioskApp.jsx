@@ -105,13 +105,15 @@ export default function KioskApp() {
     return () => events.forEach(e => window.removeEventListener(e, onActivity, { capture: true }));
   }, []);
 
-  // Arm the 20s idle timer only on catalog/cart, and not while the modal is up
+  // Arm the 20s idle timer only when the cart has items, on catalog/cart,
+  // and not while the modal is up. Empty cart → no timer, no modal.
   useEffect(() => {
     if (showIdle) return;
+    if (cart.length === 0) return;
     if (screen !== "catalog" && screen !== "cart") return;
     idleTimerRef.current = setTimeout(() => setShowIdle(true), IDLE_TIMEOUT_MS);
     return () => clearTimeout(idleTimerRef.current);
-  }, [screen, showIdle, idleNonce]);
+  }, [screen, showIdle, idleNonce, cart.length]);
 
   // Modal 15s countdown
   useEffect(() => {
