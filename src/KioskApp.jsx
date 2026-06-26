@@ -66,6 +66,8 @@ function QRPattern({ value, size = 180 }) {
 }
 
 export default function KioskApp() {
+  const [location, setLocation]   = useState(null);
+  const [locations, setLocations] = useState([]);
   const [products, setProducts] = useState(FALLBACK_PRODUCTS);
   const [banner, setBanner] = useState(FALLBACK_BANNER);
   const [cart, setCart] = useState([]);
@@ -74,17 +76,36 @@ export default function KioskApp() {
   const [timeLeft, setTimeLeft] = useState(60);
   const [paymentRef] = useState(`KSK-${Date.now().toString(36).toUpperCase()}`);
 
+  // Choose location: ?location=uuid, else show picker. Demo mode when no Supabase.
   useEffect(() => {
-    if (!supabase) return;
-    supabase.from("products").select("*").eq("visible", true).order("created_at")
-      .then(({ data }) => { if (data?.length) setProducts(data); });
+    if (!supabase) { setLocation({ id: null, name: "Демо-режим" }); return; }
+
+    const loadList = () => {
+      supabase.from("locations").select("*").eq("active", true).order("created_at")
+        .then(({ data }) => {
+          const list = data || [];
+          setLocations(list);
+          if (list.length === 1) setLocation(list[0]); // auto-enter single point
+        });
+    };
+
+    const fromUrl = new URLSearchParams(window.location.search).get("location");
+    if (fromUrl) {
+      supabase.from("locations").select("*").eq("id", fromUrl).limit(1)
+        .then(({ data }) => { data?.[0] ? setLocation(data[0]) : loadList(); });
+    } else {
+      loadList();
+    }
   }, []);
 
+  // Load products + banner for the active location
   useEffect(() => {
-    if (!supabase) return;
-    supabase.from("banners").select("*").eq("active", true).limit(1)
+    if (!supabase || !location?.id) return;
+    supabase.from("products").select("*").eq("location_id", location.id).eq("visible", true).order("created_at")
+      .then(({ data }) => { if (data) setProducts(data); });
+    supabase.from("banners").select("*").eq("location_id", location.id).eq("active", true).limit(1)
       .then(({ data }) => { if (data?.[0]) setBanner(data[0]); });
-  }, []);
+  }, [location]);
 
   useEffect(() => {
     if (screen !== "payment") return;
@@ -103,9 +124,14 @@ export default function KioskApp() {
   const cartCount = cart.reduce((s, i) => s + i.qty, 0);
 
   const addToCart = (product) => {
+    const max = product.quantity ?? Infinity; // fallback products have no stock limit
+    if (max <= 0) return;
     setCart(prev => {
       const ex = prev.find(i => i.id === product.id);
-      if (ex) return prev.map(i => i.id === product.id ? { ...i, qty: i.qty + 1 } : i);
+      if (ex) {
+        if (ex.qty >= max) return prev; // don't exceed available stock
+        return prev.map(i => i.id === product.id ? { ...i, qty: i.qty + 1 } : i);
+      }
       return [...prev, { ...product, qty: 1 }];
     });
   };
@@ -121,6 +147,7 @@ export default function KioskApp() {
   const handlePaymentSuccess = async () => {
     if (supabase) {
       await supabase.from("orders").insert([{
+        location_id: location?.id || null,
         items: cart.map(i => ({ id: i.id, name: i.name, emoji: i.emoji, image_url: i.image_url || null, price: i.price, qty: i.qty })),
         total,
         status: "paid",
@@ -129,6 +156,50 @@ export default function KioskApp() {
     setCart([]);
     setScreen("success");
   };
+
+  // ── LOCATION PICKER (first launch, no ?location=uuid) ──
+  if (!location) {
+    return (
+      <div style={{
+        minHeight: "100vh", background: "#fff", color: "#1a1a1a",
+        fontFamily: "'Inter', system-ui, sans-serif",
+        display: "flex", flexDirection: "column", maxWidth: 480, margin: "0 auto",
+      }}>
+        <div style={{
+          background: "#E8000D", padding: "20px", textAlign: "center",
+          boxShadow: "0 3px 12px rgba(232,0,13,0.3)",
+        }}>
+          <div style={{ fontSize: 22, fontWeight: 900, color: "#fff" }}>🏪 МикроМаркет</div>
+          <div style={{ fontSize: 12, color: "rgba(255,255,255,0.75)", marginTop: 2 }}>Выберите точку</div>
+        </div>
+        <div style={{ flex: 1, padding: "20px 16px", background: "#f8f8f8" }}>
+          {!locations.length ? (
+            <div style={{ padding: 48, textAlign: "center", color: "#bbb", fontSize: 14 }}>
+              Загрузка точек...
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {locations.map(l => (
+                <button key={l.id} onClick={() => setLocation(l)} style={{
+                  background: "#fff", border: "2px solid #f0f0f0", borderRadius: 16,
+                  padding: "18px 18px", textAlign: "left", cursor: "pointer",
+                  fontFamily: "inherit", display: "flex", alignItems: "center", gap: 14,
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+                }}>
+                  <span style={{ fontSize: 32 }}>📍</span>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 16, fontWeight: 800, color: "#1a1a1a" }}>{l.name}</div>
+                    {l.address && <div style={{ fontSize: 13, color: "#999", marginTop: 2 }}>{l.address}</div>}
+                  </div>
+                  <span style={{ fontSize: 18, color: "#E8000D", fontWeight: 900 }}>→</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{
@@ -156,7 +227,7 @@ export default function KioskApp() {
             🏪 МикроМаркет
           </div>
           <div style={{ fontSize: 11, color: "rgba(255,255,255,0.7)", marginTop: 1 }}>
-            БЦ Навои · этаж 3
+            {location?.name || "БЦ Навои · этаж 3"}
           </div>
         </div>
         {screen !== "payment" && screen !== "success" && (
@@ -236,6 +307,7 @@ export default function KioskApp() {
             {filtered.map(product => {
               const inCart = cart.find(i => i.id === product.id);
               const badge = product.badge && BADGE_MAP[product.badge];
+              const out = product.quantity != null && product.quantity <= 0;
               return (
                 <div key={product.id} style={{
                   background: "#fff",
@@ -247,6 +319,7 @@ export default function KioskApp() {
                     : "0 2px 8px rgba(0,0,0,0.06)",
                   transition: "all 0.15s",
                   position: "relative",
+                  opacity: out ? 0.55 : 1,
                 }}>
                   {badge && (
                     <div style={{ marginBottom: 6 }}>
@@ -275,7 +348,13 @@ export default function KioskApp() {
                     {formatPrice(product.price)}
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    {inCart ? (
+                    {out ? (
+                      <div style={{
+                        width: "100%", padding: "8px 0", borderRadius: 10, textAlign: "center",
+                        background: "#fff1f0", color: "#dc2626",
+                        fontSize: 12, fontWeight: 800,
+                      }}>Нет в наличии</div>
+                    ) : inCart ? (
                       <>
                         <button onClick={() => removeFromCart(product.id)} style={{
                           width: 32, height: 32, borderRadius: 8, border: "none",
@@ -285,10 +364,12 @@ export default function KioskApp() {
                         <span style={{ fontSize: 16, fontWeight: 900, minWidth: 24, textAlign: "center", color: "#E8000D" }}>
                           {inCart.qty}
                         </span>
-                        <button onClick={() => addToCart(product)} style={{
+                        <button onClick={() => addToCart(product)} disabled={inCart.qty >= (product.quantity ?? Infinity)} style={{
                           width: 32, height: 32, borderRadius: 8, border: "none",
-                          background: "#E8000D", color: "#fff", fontSize: 18,
-                          cursor: "pointer", fontWeight: 800, fontFamily: "inherit",
+                          background: inCart.qty >= (product.quantity ?? Infinity) ? "#f0c0c4" : "#E8000D",
+                          color: "#fff", fontSize: 18,
+                          cursor: inCart.qty >= (product.quantity ?? Infinity) ? "default" : "pointer",
+                          fontWeight: 800, fontFamily: "inherit",
                         }}>+</button>
                       </>
                     ) : (
