@@ -1,0 +1,53 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+      - claude/beri-vali-admin-panel-ln0wdo
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - run: npm ci
+
+      - name: Build
+        run: npm run build
+        env:
+          # Supabase anon key is public by design (protected by Row Level Security).
+          # Prefer repo Secrets in production: set VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY
+          # under Settings → Secrets and variables → Actions, then swap the values below
+          # for ${{ secrets.VITE_SUPABASE_URL }} / ${{ secrets.VITE_SUPABASE_ANON_KEY }}.
+          VITE_SUPABASE_URL: https://ufignylbumjqpkojvdwc.supabase.co
+          VITE_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVmaWdueWxidW1qcXBrb2p2ZHdjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0ODUzMTUsImV4cCI6MjA5ODA2MTMxNX0.Vr0_6a9LB02MuBBnTqu-9DJhJLVOCSY5QSYcTo9WeWQ
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/deploy-pages@v4
+        id: deployment
