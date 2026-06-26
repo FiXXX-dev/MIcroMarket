@@ -11,6 +11,7 @@ create table if not exists products (
   emoji      text not null default '🛍',
   category   text not null check (category in ('Напитки', 'Снеки', 'Еда', 'Кофе')),
   badge      text check (badge in ('hit', 'new', 'sale', 'last')),
+  image_url  text,
   visible    boolean not null default true,
   created_at timestamptz not null default now()
 );
@@ -30,6 +31,7 @@ create table if not exists banners (
   text       text not null,
   emoji      text not null default '🔥',
   color      text not null default '#FFD600',
+  image_url  text,
   active     boolean not null default true,
   created_at timestamptz not null default now()
 );
@@ -42,6 +44,20 @@ alter table banners  enable row level security;
 create policy "products_all" on products for all using (true) with check (true);
 create policy "orders_all"   on orders   for all using (true) with check (true);
 create policy "banners_all"  on banners  for all using (true) with check (true);
+
+-- ── Storage bucket for uploaded images ──
+insert into storage.buckets (id, name, public)
+values ('market-images', 'market-images', true)
+on conflict (id) do update set public = true;
+
+create policy "market_images_read"   on storage.objects
+  for select using (bucket_id = 'market-images');
+create policy "market_images_insert" on storage.objects
+  for insert with check (bucket_id = 'market-images');
+create policy "market_images_update" on storage.objects
+  for update using (bucket_id = 'market-images') with check (bucket_id = 'market-images');
+create policy "market_images_delete" on storage.objects
+  for delete using (bucket_id = 'market-images');
 
 -- ── Seed: initial products ──
 insert into products (name, price, emoji, category, badge) values

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "./supabase";
+import { supabase, uploadImage } from "./supabase";
 
 const ADMIN_PASS = "admin123";
 
@@ -81,6 +81,63 @@ function Toggle({ on, onChange, labelOn = "Да", labelOff = "Нет" }) {
   );
 }
 
+// ── IMAGE UPLOAD ───────────────────────────────────────────────────
+function ImageUpload({ value, onChange, fallback }) {
+  const [uploading, setUploading] = useState(false);
+  const [err, setErr] = useState("");
+
+  const handleFile = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // allow re-selecting the same file
+    if (!file) return;
+    setUploading(true);
+    setErr("");
+    try {
+      const url = await uploadImage(file);
+      onChange(url);
+    } catch (ex) {
+      setErr(ex.message || "Ошибка загрузки");
+    }
+    setUploading(false);
+  };
+
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <div style={{
+          width: 64, height: 64, borderRadius: 10, flexShrink: 0,
+          border: "1.5px solid #e0e0e0", background: "#fafafa",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          overflow: "hidden", fontSize: 30,
+        }}>
+          {value
+            ? <img src={value} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            : <span>{fallback || "🖼"}</span>}
+        </div>
+        <div style={{ flex: 1 }}>
+          <label style={{
+            ...S.btnSecondary, display: "inline-block", textAlign: "center",
+            cursor: uploading ? "default" : "pointer", opacity: uploading ? 0.6 : 1,
+            padding: "9px 16px",
+          }}>
+            {uploading ? "Загрузка..." : (value ? "Заменить фото" : "📷 Загрузить фото")}
+            <input type="file" accept="image/*" onChange={handleFile}
+              disabled={uploading} style={{ display: "none" }} />
+          </label>
+          {value && !uploading && (
+            <button type="button" onClick={() => onChange(null)} style={{
+              marginLeft: 8, padding: "9px 14px", borderRadius: 8,
+              border: "1px solid #fca5a5", background: "#fff1f0", color: "#dc2626",
+              fontSize: 13, cursor: "pointer", fontFamily: "inherit", fontWeight: 600,
+            }}>Убрать</button>
+          )}
+        </div>
+      </div>
+      {err && <div style={{ color: "#E8000D", fontSize: 12, marginTop: 6 }}>{err}</div>}
+    </div>
+  );
+}
+
 // ── STATUS PILL ────────────────────────────────────────────────────
 function StatusPill({ on, labelOn, labelOff, onClick }) {
   return (
@@ -133,12 +190,13 @@ function Modal({ title, onClose, children }) {
 // ── PRODUCT FORM ───────────────────────────────────────────────────
 function ProductForm({ initial, onSave, onClose, saving }) {
   const [form, setForm] = useState({
-    name:     initial?.name     || "",
-    price:    initial?.price    || "",
-    emoji:    initial?.emoji    || "🛍",
-    category: initial?.category || "Напитки",
-    badge:    initial?.badge    || "",
-    visible:  initial?.visible  ?? true,
+    name:      initial?.name      || "",
+    price:     initial?.price     || "",
+    emoji:     initial?.emoji     || "🛍",
+    category:  initial?.category  || "Напитки",
+    badge:     initial?.badge     || "",
+    image_url: initial?.image_url || null,
+    visible:   initial?.visible   ?? true,
   });
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
@@ -160,6 +218,14 @@ function ProductForm({ initial, onSave, onClose, saving }) {
           <label style={S.label}>Название *</label>
           <input value={form.name} onChange={e => set("name", e.target.value)}
             placeholder="Coca-Cola 0.5л" style={S.input} required />
+        </div>
+      </div>
+
+      <div style={{ marginBottom: 16 }}>
+        <label style={S.label}>Фото товара</label>
+        <ImageUpload value={form.image_url} onChange={v => set("image_url", v)} fallback={form.emoji} />
+        <div style={{ fontSize: 11, color: "#aaa", marginTop: 6 }}>
+          Если фото загружено, в киоске оно показывается вместо эмодзи.
         </div>
       </div>
 
@@ -210,10 +276,11 @@ function ProductForm({ initial, onSave, onClose, saving }) {
 // ── BANNER FORM ────────────────────────────────────────────────────
 function BannerForm({ initial, onSave, onClose, saving }) {
   const [form, setForm] = useState({
-    text:   initial?.text   || "",
-    emoji:  initial?.emoji  || "🔥",
-    color:  initial?.color  || "#FFD600",
-    active: initial?.active ?? true,
+    text:      initial?.text      || "",
+    emoji:     initial?.emoji     || "🔥",
+    color:     initial?.color     || "#FFD600",
+    image_url: initial?.image_url || null,
+    active:    initial?.active    ?? true,
   });
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
@@ -248,14 +315,30 @@ function BannerForm({ initial, onSave, onClose, saving }) {
         </div>
       </div>
 
+      <div style={{ marginBottom: 16 }}>
+        <label style={S.label}>Фото баннера</label>
+        <ImageUpload value={form.image_url} onChange={v => set("image_url", v)} fallback={form.emoji} />
+        <div style={{ fontSize: 11, color: "#aaa", marginTop: 6 }}>
+          Если фото загружено, оно показывается фоном баннера вместо цвета.
+        </div>
+      </div>
+
       <div style={{ marginBottom: 20 }}>
         <label style={S.label}>Предпросмотр</label>
         <div style={{
-          background: form.color, borderRadius: 8, padding: "10px 14px",
-          display: "flex", alignItems: "center", gap: 8,
+          background: form.image_url ? `center/cover no-repeat url(${form.image_url})` : form.color,
+          borderRadius: 8, padding: "10px 14px",
+          display: "flex", alignItems: "center", gap: 8, position: "relative", overflow: "hidden",
         }}>
-          <span style={{ fontSize: 18 }}>{form.emoji}</span>
-          <span style={{ fontSize: 13, fontWeight: 700, color: "#1a1a1a" }}>{form.text || "..."}</span>
+          {form.image_url && (
+            <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.32)" }} />
+          )}
+          <span style={{ fontSize: 18, position: "relative" }}>{form.emoji}</span>
+          <span style={{
+            fontSize: 13, fontWeight: 700, position: "relative",
+            color: form.image_url ? "#fff" : "#1a1a1a",
+            textShadow: form.image_url ? "0 1px 4px rgba(0,0,0,0.5)" : "none",
+          }}>{form.text || "..."}</span>
         </div>
       </div>
 
@@ -353,7 +436,14 @@ function ProductsTab() {
                 }}>
                   <td style={{ padding: "12px 14px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <span style={{ fontSize: 24, lineHeight: 1 }}>{p.emoji}</span>
+                      {p.image_url ? (
+                        <img src={p.image_url} alt="" style={{
+                          width: 36, height: 36, borderRadius: 8, objectFit: "cover",
+                          border: "1px solid #eee", flexShrink: 0,
+                        }} />
+                      ) : (
+                        <span style={{ fontSize: 24, lineHeight: 1, width: 36, textAlign: "center" }}>{p.emoji}</span>
+                      )}
                       <span style={{ fontSize: 14, fontWeight: 600, color: "#1a1a1a" }}>{p.name}</span>
                     </div>
                   </td>
@@ -493,11 +583,21 @@ function BannersTab() {
               display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap",
             }}>
               <div style={{
-                background: b.color, borderRadius: 8, padding: "9px 16px",
+                background: b.image_url ? `center/cover no-repeat url(${b.image_url})` : b.color,
+                borderRadius: 8, padding: "9px 16px",
                 display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 220,
+                position: "relative", overflow: "hidden",
               }}>
-                <span style={{ fontSize: 18, flexShrink: 0 }}>{b.emoji}</span>
-                <span style={{ fontSize: 13, fontWeight: 700, color: "#1a1a1a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {b.image_url && (
+                  <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.32)" }} />
+                )}
+                <span style={{ fontSize: 18, flexShrink: 0, position: "relative" }}>{b.emoji}</span>
+                <span style={{
+                  fontSize: 13, fontWeight: 700, position: "relative",
+                  color: b.image_url ? "#fff" : "#1a1a1a",
+                  textShadow: b.image_url ? "0 1px 4px rgba(0,0,0,0.5)" : "none",
+                  overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                }}>
                   {b.text}
                 </span>
               </div>
