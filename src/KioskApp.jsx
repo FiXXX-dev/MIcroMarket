@@ -146,16 +146,20 @@ export default function KioskApp() {
 
   const handlePaymentSuccess = async () => {
     if (supabase) {
-      const { data: order } = await supabase.from("orders").insert([{
-        location_id: location?.id || null,
-        items: cart.map(i => ({ id: i.id, name: i.name, emoji: i.emoji, image_url: i.image_url || null, price: i.price, qty: i.qty })),
-        total,
-        status: "paid",
-      }]).select().single().catch(() => ({ data: null }));
+      try {
+        const { data: order } = await supabase.from("orders").insert([{
+          location_id: location?.id || null,
+          items: cart.map(i => ({ id: i.id, name: i.name, emoji: i.emoji, image_url: i.image_url || null, price: i.price, qty: i.qty })),
+          total,
+          status: "paid",
+        }]).select().single();
 
-      // Fire Telegram notification (also decrements stock server-side). Non-blocking.
-      if (order?.id) {
-        supabase.functions.invoke("telegram-notify", { body: { order_id: order.id } }).catch(() => {});
+        // Fire Telegram notification (also decrements stock server-side). Non-blocking.
+        if (order?.id) {
+          supabase.functions.invoke("telegram-notify", { body: { order_id: order.id } }).catch(() => {});
+        }
+      } catch (e) {
+        // ignore — never block the success screen on a logging/notification failure
       }
     }
 
