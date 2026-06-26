@@ -1,5 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "./supabase";
+
+const IDLE_TIMEOUT_MS = 20000;   // show modal after 20s of inactivity
+const IDLE_COUNTDOWN = 15;       // seconds before cart auto-clears
 
 const FALLBACK_PRODUCTS = [
   { id: 1,  name: "Вода Nestle 0.5л",      price: 3000,  emoji: "💧", category: "Напитки" },
@@ -75,6 +78,52 @@ export default function KioskApp() {
   const [screen, setScreen] = useState("catalog");
   const [timeLeft, setTimeLeft] = useState(60);
   const [paymentRef] = useState(`KSK-${Date.now().toString(36).toUpperCase()}`);
+
+  // ── Inactivity timeout ──
+  const [showIdle, setShowIdle] = useState(false);
+  const [idleCountdown, setIdleCountdown] = useState(IDLE_COUNTDOWN);
+  const [idleNonce, setIdleNonce] = useState(0);
+  const idleTimerRef = useRef(null);
+  const showIdleRef = useRef(false);
+  const lastBumpRef = useRef(0);
+  useEffect(() => { showIdleRef.current = showIdle; }, [showIdle]);
+
+  const idleContinue = () => setShowIdle(false);
+  const idleClearExit = () => { setCart([]); setScreen("catalog"); setShowIdle(false); };
+
+  // Any interaction (tap, scroll, key) resets the inactivity timer (throttled to 1s)
+  useEffect(() => {
+    const onActivity = () => {
+      if (showIdleRef.current) return; // modal handles its own countdown
+      const now = Date.now();
+      if (now - lastBumpRef.current < 1000) return;
+      lastBumpRef.current = now;
+      setIdleNonce(n => n + 1);
+    };
+    const events = ["pointerdown", "touchstart", "scroll", "keydown", "wheel"];
+    events.forEach(e => window.addEventListener(e, onActivity, { passive: true, capture: true }));
+    return () => events.forEach(e => window.removeEventListener(e, onActivity, { capture: true }));
+  }, []);
+
+  // Arm the 20s idle timer only on catalog/cart, and not while the modal is up
+  useEffect(() => {
+    if (showIdle) return;
+    if (screen !== "catalog" && screen !== "cart") return;
+    idleTimerRef.current = setTimeout(() => setShowIdle(true), IDLE_TIMEOUT_MS);
+    return () => clearTimeout(idleTimerRef.current);
+  }, [screen, showIdle, idleNonce]);
+
+  // Modal 15s countdown
+  useEffect(() => {
+    if (!showIdle) return;
+    setIdleCountdown(IDLE_COUNTDOWN);
+    const iv = setInterval(() => setIdleCountdown(c => c - 1), 1000);
+    return () => clearInterval(iv);
+  }, [showIdle]);
+
+  useEffect(() => {
+    if (showIdle && idleCountdown <= 0) idleClearExit();
+  }, [showIdle, idleCountdown]);
 
   // Choose location: ?location=uuid, else show picker. Demo mode when no Supabase.
   useEffect(() => {
@@ -590,6 +639,56 @@ export default function KioskApp() {
             color: "#fff", fontSize: 16, fontWeight: 900, cursor: "pointer",
             boxShadow: "0 4px 20px rgba(232,0,13,0.35)",
           }}>← На главную</button>
+        </div>
+      )}
+
+      {/* ── INACTIVITY MODAL ── */}
+      {showIdle && screen !== "payment" && screen !== "success" && (
+        <div style={{
+          position: "fixed", inset: 0, zIndex: 2000,
+          background: "rgba(26,26,26,0.65)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          padding: 24, fontFamily: "'Inter', system-ui, sans-serif",
+        }}>
+          <div style={{
+            background: "#fff", borderRadius: 24, padding: "32px 28px",
+            width: "100%", maxWidth: 360, textAlign: "center",
+            boxShadow: "0 20px 60px rgba(0,0,0,0.35)",
+            border: "3px solid #FFD600",
+          }}>
+            <div style={{
+              width: 88, height: 88, borderRadius: "50%", background: "#FFD600",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 44, margin: "0 auto 18px",
+              boxShadow: "0 8px 28px rgba(255,214,0,0.45)",
+            }}>🛒</div>
+
+            <div style={{ fontSize: 24, fontWeight: 900, color: "#1a1a1a", marginBottom: 10 }}>
+              Вы ещё здесь?
+            </div>
+            <div style={{ fontSize: 15, color: "#666", marginBottom: 6, lineHeight: 1.5 }}>
+              Ваша корзина будет очищена через
+            </div>
+            <div style={{ fontSize: 44, fontWeight: 900, color: "#E8000D", marginBottom: 24, lineHeight: 1 }}>
+              {Math.max(0, idleCountdown)}
+              <span style={{ fontSize: 15, fontWeight: 700, color: "#999", marginLeft: 6 }}>сек</span>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <button onClick={idleContinue} style={{
+                width: "100%", padding: 16, borderRadius: 14, border: "none",
+                background: "#E8000D", color: "#fff", fontSize: 16, fontWeight: 800,
+                cursor: "pointer", fontFamily: "inherit",
+                boxShadow: "0 4px 16px rgba(232,0,13,0.35)",
+              }}>Продолжить покупку</button>
+              <button onClick={idleClearExit} style={{
+                width: "100%", padding: 14, borderRadius: 14,
+                border: "1.5px solid #e0e0e0", background: "#fff",
+                color: "#999", fontSize: 14, fontWeight: 600,
+                cursor: "pointer", fontFamily: "inherit",
+              }}>Очистить и выйти</button>
+            </div>
+          </div>
         </div>
       )}
     </div>
