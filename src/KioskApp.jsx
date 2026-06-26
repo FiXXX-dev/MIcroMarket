@@ -146,13 +146,26 @@ export default function KioskApp() {
 
   const handlePaymentSuccess = async () => {
     if (supabase) {
-      await supabase.from("orders").insert([{
+      const { data: order } = await supabase.from("orders").insert([{
         location_id: location?.id || null,
         items: cart.map(i => ({ id: i.id, name: i.name, emoji: i.emoji, image_url: i.image_url || null, price: i.price, qty: i.qty })),
         total,
         status: "paid",
-      }]).catch(() => {});
+      }]).select().single().catch(() => ({ data: null }));
+
+      // Fire Telegram notification (also decrements stock server-side). Non-blocking.
+      if (order?.id) {
+        supabase.functions.invoke("telegram-notify", { body: { order_id: order.id } }).catch(() => {});
+      }
     }
+
+    // Reflect stock locally so the catalog updates immediately
+    setProducts(prev => prev.map(p => {
+      if (p.quantity == null) return p;
+      const ci = cart.find(c => c.id === p.id);
+      return ci ? { ...p, quantity: Math.max(0, p.quantity - ci.qty) } : p;
+    }));
+
     setCart([]);
     setScreen("success");
   };
