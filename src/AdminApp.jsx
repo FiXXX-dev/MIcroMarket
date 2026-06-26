@@ -196,6 +196,7 @@ function ProductForm({ initial, onSave, onClose, saving }) {
     category:  initial?.category  || "Напитки",
     badge:     initial?.badge     || "",
     image_url: initial?.image_url || null,
+    quantity:  initial?.quantity  ?? 0,
     visible:   initial?.visible   ?? true,
   });
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
@@ -203,7 +204,12 @@ function ProductForm({ initial, onSave, onClose, saving }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!form.name.trim() || !form.price) return;
-    onSave({ ...form, price: parseInt(form.price, 10), badge: form.badge || null });
+    onSave({
+      ...form,
+      price: parseInt(form.price, 10),
+      quantity: Math.max(0, parseInt(form.quantity, 10) || 0),
+      badge: form.badge || null,
+    });
   };
 
   return (
@@ -254,9 +260,18 @@ function ProductForm({ initial, onSave, onClose, saving }) {
           </select>
         </div>
         <div style={{ flex: 1 }}>
-          <label style={S.label}>Видимость</label>
-          <Toggle on={form.visible} onChange={v => set("visible", v)} labelOn="Виден" labelOff="Скрыт" />
+          <label style={S.label}>Кол-во на складе</label>
+          <input type="number" value={form.quantity} onChange={e => set("quantity", e.target.value)}
+            min="0" style={S.input} />
+          <div style={{ fontSize: 11, color: form.quantity == 0 ? "#E8000D" : "#aaa", marginTop: 4 }}>
+            {form.quantity == 0 ? "0 — товар скрыт как «Нет в наличии»" : "0 = нет в наличии"}
+          </div>
         </div>
+      </div>
+
+      <div style={{ marginBottom: 16 }}>
+        <label style={S.label}>Видимость</label>
+        <Toggle on={form.visible} onChange={v => set("visible", v)} labelOn="Виден" labelOff="Скрыт" />
       </div>
 
       <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
@@ -357,7 +372,7 @@ function BannerForm({ initial, onSave, onClose, saving }) {
 }
 
 // ── PRODUCTS TAB ───────────────────────────────────────────────────
-function ProductsTab() {
+function ProductsTab({ locationId }) {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving]   = useState(false);
@@ -367,11 +382,12 @@ function ProductsTab() {
   const load = useCallback(async () => {
     setLoading(true);
     const { data, error } = await supabase
-      .from("products").select("*").order("created_at", { ascending: false });
+      .from("products").select("*").eq("location_id", locationId)
+      .order("created_at", { ascending: false });
     if (error) setError(error.message);
     else setProducts(data || []);
     setLoading(false);
-  }, []);
+  }, [locationId]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -379,7 +395,7 @@ function ProductsTab() {
     setSaving(true);
     setError("");
     const { error } = modal === "add"
-      ? await supabase.from("products").insert([form])
+      ? await supabase.from("products").insert([{ ...form, location_id: locationId }])
       : await supabase.from("products").update(form).eq("id", modal.id);
     setSaving(false);
     if (error) { setError(error.message); return; }
@@ -462,8 +478,19 @@ function ProductsTab() {
                       </span>
                     ) : <span style={{ color: "#ddd" }}>—</span>}
                   </td>
-                  <td style={{ padding: "12px 14px", fontSize: 13, color: "#777" }}>
-                    {/* placeholder for stock/qty column */}—
+                  <td style={{ padding: "12px 14px" }}>
+                    {p.quantity > 0 ? (
+                      <span style={{
+                        fontSize: 13, fontWeight: 700,
+                        color: p.quantity <= 5 ? "#d97706" : "#16a34a",
+                      }}>{p.quantity} шт</span>
+                    ) : (
+                      <span style={{
+                        display: "inline-flex", alignItems: "center", gap: 3,
+                        padding: "3px 8px", borderRadius: 6, fontSize: 11, fontWeight: 700,
+                        background: "#fff1f0", color: "#dc2626",
+                      }}>Нет в наличии</span>
+                    )}
                   </td>
                   <td style={{ padding: "12px 14px" }}>
                     <StatusPill
@@ -515,7 +542,7 @@ function ProductsTab() {
 }
 
 // ── BANNERS TAB ────────────────────────────────────────────────────
-function BannersTab() {
+function BannersTab({ locationId }) {
   const [banners, setBanners] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving]   = useState(false);
@@ -525,11 +552,12 @@ function BannersTab() {
   const load = useCallback(async () => {
     setLoading(true);
     const { data, error } = await supabase
-      .from("banners").select("*").order("created_at", { ascending: false });
+      .from("banners").select("*").eq("location_id", locationId)
+      .order("created_at", { ascending: false });
     if (error) setError(error.message);
     else setBanners(data || []);
     setLoading(false);
-  }, []);
+  }, [locationId]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -537,7 +565,7 @@ function BannersTab() {
     setSaving(true);
     setError("");
     const { error } = modal === "add"
-      ? await supabase.from("banners").insert([form])
+      ? await supabase.from("banners").insert([{ ...form, location_id: locationId }])
       : await supabase.from("banners").update(form).eq("id", modal.id);
     setSaving(false);
     if (error) { setError(error.message); return; }
@@ -644,15 +672,17 @@ function BannersTab() {
 }
 
 // ── ORDERS TAB ─────────────────────────────────────────────────────
-function OrdersTab() {
+function OrdersTab({ locationId }) {
   const [orders, setOrders]   = useState([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState(null);
 
   useEffect(() => {
-    supabase.from("orders").select("*").order("created_at", { ascending: false })
+    setLoading(true);
+    supabase.from("orders").select("*").eq("location_id", locationId)
+      .order("created_at", { ascending: false })
       .then(({ data }) => { setOrders(data || []); setLoading(false); });
-  }, []);
+  }, [locationId]);
 
   const paidOrders = orders.filter(o => o.status === "paid");
   const totalRevenue = paidOrders.reduce((s, o) => s + o.total, 0);
@@ -761,6 +791,181 @@ function OrdersTab() {
   );
 }
 
+// ── LOCATION FORM ──────────────────────────────────────────────────
+function LocationForm({ initial, onSave, onClose, saving }) {
+  const [form, setForm] = useState({
+    name:    initial?.name    || "",
+    address: initial?.address || "",
+    active:  initial?.active  ?? true,
+  });
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!form.name.trim()) return;
+    onSave(form);
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <div style={{ marginBottom: 16 }}>
+        <label style={S.label}>Название точки *</label>
+        <input value={form.name} onChange={e => set("name", e.target.value)}
+          placeholder="БЦ Навои · этаж 3" style={S.input} required autoFocus />
+      </div>
+      <div style={{ marginBottom: 16 }}>
+        <label style={S.label}>Адрес</label>
+        <input value={form.address} onChange={e => set("address", e.target.value)}
+          placeholder="Ташкент, ул. Навои 1" style={S.input} />
+      </div>
+      <div style={{ marginBottom: 20 }}>
+        <label style={S.label}>Статус</label>
+        <Toggle on={form.active} onChange={v => set("active", v)} labelOn="Активна" labelOff="Выкл" />
+      </div>
+      <div style={{ display: "flex", gap: 10 }}>
+        <button type="button" onClick={onClose} style={{ ...S.btnSecondary, flex: 1 }}>Отмена</button>
+        <button type="submit" disabled={saving} style={{
+          ...S.btnPrimary, flex: 2,
+          background: saving ? "#ccc" : "#E8000D",
+          cursor: saving ? "default" : "pointer",
+        }}>
+          {saving ? "Сохранение..." : (initial ? "Сохранить" : "Добавить точку")}
+        </button>
+      </div>
+    </form>
+  );
+}
+
+// ── LOCATIONS SCREEN ───────────────────────────────────────────────
+function LocationsScreen({ onEnter, onLogout }) {
+  const [locations, setLocations] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving]   = useState(false);
+  const [modal, setModal]     = useState(null);
+  const [error, setError]     = useState("");
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("locations").select("*").order("created_at", { ascending: true });
+    if (error) setError(error.message);
+    else setLocations(data || []);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const handleSave = async (form) => {
+    setSaving(true);
+    setError("");
+    const { error } = modal === "add"
+      ? await supabase.from("locations").insert([form])
+      : await supabase.from("locations").update(form).eq("id", modal.id);
+    setSaving(false);
+    if (error) { setError(error.message); return; }
+    setModal(null);
+    load();
+  };
+
+  const handleDelete = async (e, id) => {
+    e.stopPropagation();
+    if (!confirm("Удалить точку? Все её товары, баннеры и заказы тоже будут удалены.")) return;
+    const { error } = await supabase.from("locations").delete().eq("id", id);
+    if (error) setError(error.message);
+    else setLocations(ls => ls.filter(l => l.id !== id));
+  };
+
+  return (
+    <div style={{
+      minHeight: "100vh", background: "#f3f4f6",
+      fontFamily: "'Inter', system-ui, sans-serif",
+    }}>
+      <div style={{
+        background: "#E8000D", padding: "14px 24px",
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        boxShadow: "0 2px 16px rgba(232,0,13,0.3)",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ fontSize: 20 }}>🏪</span>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 900, color: "#fff", lineHeight: 1.1 }}>МикроМаркет</div>
+            <div style={{ fontSize: 10, color: "rgba(255,255,255,0.55)", letterSpacing: "0.03em" }}>АДМИНИСТРАТОР</div>
+          </div>
+        </div>
+        <button onClick={onLogout} style={{
+          padding: "8px 14px", borderRadius: 8, fontFamily: "inherit",
+          border: "1.5px solid rgba(255,255,255,0.25)", background: "transparent",
+          color: "rgba(255,255,255,0.75)", fontSize: 12, cursor: "pointer", fontWeight: 600,
+        }}>Выйти</button>
+      </div>
+
+      <div style={{ maxWidth: 820, margin: "0 auto", padding: "28px 24px" }}>
+        {error && <div style={S.errorBox}>{error}</div>}
+
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+          <div>
+            <h2 style={{ margin: 0, fontSize: 22, fontWeight: 900, color: "#1a1a1a" }}>Точки продаж</h2>
+            <div style={{ fontSize: 13, color: "#999", marginTop: 4 }}>Выберите точку для управления</div>
+          </div>
+          <button onClick={() => setModal("add")} style={S.btnPrimary}>+ Добавить точку</button>
+        </div>
+
+        {loading && !locations.length ? (
+          <div style={{ padding: 48, textAlign: "center", color: "#bbb" }}>Загрузка...</div>
+        ) : !locations.length ? (
+          <div style={{ ...S.card, padding: 48, textAlign: "center", color: "#bbb", fontSize: 14 }}>
+            Точек пока нет — добавьте первую!
+          </div>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 14 }}>
+            {locations.map(l => (
+              <div key={l.id} onClick={() => onEnter(l)} style={{
+                ...S.card, padding: "18px 20px", cursor: "pointer",
+                borderColor: l.active ? "#e8e8e8" : "#eee",
+                opacity: l.active ? 1 : 0.6, transition: "all 0.15s",
+                display: "flex", flexDirection: "column", gap: 8,
+              }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                  <span style={{ fontSize: 28 }}>📍</span>
+                  <StatusPill on={l.active} labelOn="Активна" labelOff="Выкл" />
+                </div>
+                <div style={{ fontSize: 16, fontWeight: 800, color: "#1a1a1a", lineHeight: 1.25 }}>{l.name}</div>
+                {l.address && <div style={{ fontSize: 13, color: "#999" }}>{l.address}</div>}
+                <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                  <button onClick={(e) => { e.stopPropagation(); setModal(l); }} style={{
+                    padding: "6px 12px", borderRadius: 6, border: "1px solid #e0e0e0",
+                    background: "#fff", color: "#444", fontSize: 12, cursor: "pointer",
+                    fontFamily: "inherit", fontWeight: 600,
+                  }}>✏️ Ред.</button>
+                  <button onClick={(e) => handleDelete(e, l.id)} style={{
+                    padding: "6px 12px", borderRadius: 6, border: "1px solid #fca5a5",
+                    background: "#fff1f0", color: "#dc2626", fontSize: 12,
+                    cursor: "pointer", fontFamily: "inherit", fontWeight: 600,
+                  }}>🗑</button>
+                  <div style={{ flex: 1, textAlign: "right", color: "#E8000D", fontSize: 13, fontWeight: 700, alignSelf: "center" }}>
+                    Открыть →
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {modal !== null && (
+        <Modal title={modal === "add" ? "Новая точка" : "Редактировать точку"} onClose={() => setModal(null)}>
+          <LocationForm
+            initial={modal === "add" ? null : modal}
+            onSave={handleSave}
+            onClose={() => setModal(null)}
+            saving={saving}
+          />
+        </Modal>
+      )}
+    </div>
+  );
+}
+
 // ── LOGIN ──────────────────────────────────────────────────────────
 function LoginScreen({ onLogin }) {
   const [password, setPassword] = useState("");
@@ -837,11 +1042,13 @@ function NotConfigured() {
 
 // ── ROOT ───────────────────────────────────────────────────────────
 export default function AdminApp() {
-  const [authed, setAuthed] = useState(false);
-  const [tab, setTab]       = useState("products");
+  const [authed, setAuthed]     = useState(false);
+  const [location, setLocation] = useState(null);
+  const [tab, setTab]           = useState("products");
 
   if (!supabase) return <NotConfigured />;
   if (!authed)   return <LoginScreen onLogin={setAuthed} />;
+  if (!location) return <LocationsScreen onEnter={(l) => { setLocation(l); setTab("products"); }} onLogout={() => setAuthed(false)} />;
 
   const TABS = [
     { id: "products", label: "🛍 Товары" },
@@ -857,17 +1064,28 @@ export default function AdminApp() {
       {/* Navbar */}
       <div style={{
         background: "#E8000D", padding: "0 24px",
-        display: "flex", alignItems: "center", gap: 8,
+        display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap",
         boxShadow: "0 2px 16px rgba(232,0,13,0.3)",
         position: "sticky", top: 0, zIndex: 100,
       }}>
-        <div style={{ padding: "14px 0", display: "flex", alignItems: "center", gap: 10, marginRight: 16 }}>
+        <div style={{ padding: "14px 0", display: "flex", alignItems: "center", gap: 10, marginRight: 8 }}>
           <span style={{ fontSize: 20 }}>🏪</span>
           <div>
             <div style={{ fontSize: 15, fontWeight: 900, color: "#fff", lineHeight: 1.1 }}>МикроМаркет</div>
             <div style={{ fontSize: 10, color: "rgba(255,255,255,0.55)", letterSpacing: "0.03em" }}>АДМИНИСТРАТОР</div>
           </div>
         </div>
+
+        {/* Current location + switch */}
+        <button onClick={() => setLocation(null)} title="Сменить точку" style={{
+          display: "flex", alignItems: "center", gap: 6, marginRight: 8,
+          padding: "7px 12px", borderRadius: 8, fontFamily: "inherit", cursor: "pointer",
+          border: "1.5px solid rgba(255,255,255,0.3)", background: "rgba(255,255,255,0.12)",
+          color: "#fff", fontSize: 13, fontWeight: 700,
+        }}>
+          📍 {location.name}
+          <span style={{ fontSize: 11, opacity: 0.7, fontWeight: 600 }}>⇄ сменить</span>
+        </button>
 
         <div style={{ display: "flex", gap: 4, flex: 1 }}>
           {TABS.map(t => (
@@ -881,7 +1099,7 @@ export default function AdminApp() {
           ))}
         </div>
 
-        <button onClick={() => setAuthed(false)} style={{
+        <button onClick={() => { setAuthed(false); setLocation(null); }} style={{
           padding: "8px 14px", borderRadius: 8, fontFamily: "inherit",
           border: "1.5px solid rgba(255,255,255,0.25)", background: "transparent",
           color: "rgba(255,255,255,0.75)", fontSize: 12, cursor: "pointer", fontWeight: 600,
@@ -890,9 +1108,9 @@ export default function AdminApp() {
       </div>
 
       <div style={{ maxWidth: 1040, margin: "0 auto", padding: "28px 24px" }}>
-        {tab === "products" && <ProductsTab />}
-        {tab === "banners"  && <BannersTab />}
-        {tab === "orders"   && <OrdersTab />}
+        {tab === "products" && <ProductsTab locationId={location.id} />}
+        {tab === "banners"  && <BannersTab  locationId={location.id} />}
+        {tab === "orders"   && <OrdersTab   locationId={location.id} />}
       </div>
     </div>
   );
