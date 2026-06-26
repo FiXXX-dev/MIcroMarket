@@ -121,7 +121,7 @@ export default function KioskApp() {
   const handlePaymentSuccess = async () => {
     if (supabase) {
       await supabase.from("orders").insert([{
-        items: cart.map(i => ({ id: i.id, name: i.name, emoji: i.emoji, price: i.price, qty: i.qty })),
+        items: cart.map(i => ({ id: i.id, name: i.name, emoji: i.emoji, image_url: i.image_url || null, price: i.price, qty: i.qty })),
         total,
         status: "paid",
       }]).catch(() => {});
@@ -183,14 +183,25 @@ export default function KioskApp() {
 
           {/* Promo banner from Supabase */}
           <div style={{
-            background: banner.color,
+            background: banner.image_url
+              ? `center/cover no-repeat url(${banner.image_url})`
+              : banner.color,
             padding: "10px 20px",
             display: "flex",
             alignItems: "center",
             gap: 8,
+            position: "relative",
+            overflow: "hidden",
           }}>
-            <span style={{ fontSize: 18 }}>{banner.emoji}</span>
-            <span style={{ fontSize: 13, fontWeight: 700, color: "#1a1a1a" }}>
+            {banner.image_url && (
+              <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.35)" }} />
+            )}
+            <span style={{ fontSize: 18, position: "relative" }}>{banner.emoji}</span>
+            <span style={{
+              fontSize: 13, fontWeight: 700, position: "relative",
+              color: banner.image_url ? "#fff" : "#1a1a1a",
+              textShadow: banner.image_url ? "0 1px 4px rgba(0,0,0,0.5)" : "none",
+            }}>
               {banner.text}
             </span>
           </div>
@@ -249,7 +260,14 @@ export default function KioskApp() {
                       </span>
                     </div>
                   )}
-                  <div style={{ fontSize: 36, marginBottom: 8, textAlign: "center" }}>{product.emoji}</div>
+                  {product.image_url ? (
+                    <div style={{
+                      width: "100%", height: 90, marginBottom: 8, borderRadius: 12,
+                      background: `center/cover no-repeat url(${product.image_url})`,
+                    }} />
+                  ) : (
+                    <div style={{ fontSize: 36, marginBottom: 8, textAlign: "center" }}>{product.emoji}</div>
+                  )}
                   <div style={{ fontSize: 13, fontWeight: 600, color: "#333", marginBottom: 4, lineHeight: 1.3 }}>
                     {product.name}
                   </div>
@@ -306,7 +324,14 @@ export default function KioskApp() {
                 display: "flex", alignItems: "center", gap: 12,
                 padding: "14px 0", borderBottom: "1px solid #f5f5f5",
               }}>
-                <span style={{ fontSize: 28 }}>{item.emoji}</span>
+                {item.image_url ? (
+                  <div style={{
+                    width: 40, height: 40, borderRadius: 8, flexShrink: 0,
+                    background: `center/cover no-repeat url(${item.image_url})`,
+                  }} />
+                ) : (
+                  <span style={{ fontSize: 28 }}>{item.emoji}</span>
+                )}
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 13, fontWeight: 600, color: "#333" }}>{item.name}</div>
                   <div style={{ fontSize: 12, color: "#999" }}>{formatPrice(item.price)} × {item.qty}</div>
