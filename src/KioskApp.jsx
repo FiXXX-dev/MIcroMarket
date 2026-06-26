@@ -1,0 +1,460 @@
+import { useState, useEffect } from "react";
+import { supabase } from "./supabase";
+
+const FALLBACK_PRODUCTS = [
+  { id: 1,  name: "Вода Nestle 0.5л",      price: 3000,  emoji: "💧", category: "Напитки" },
+  { id: 2,  name: "Coca-Cola 0.5л",         price: 8000,  emoji: "🥤", category: "Напитки", badge: "hit" },
+  { id: 3,  name: "Red Bull 0.25л",         price: 15000, emoji: "⚡", category: "Напитки" },
+  { id: 4,  name: "Сок Rich яблоко",        price: 7000,  emoji: "🍎", category: "Напитки" },
+  { id: 5,  name: "Сникерс",                price: 5000,  emoji: "🍫", category: "Снеки",   badge: "hit" },
+  { id: 6,  name: "Чипсы Lays",             price: 9000,  emoji: "🥔", category: "Снеки" },
+  { id: 7,  name: "Орехи ассорти",          price: 12000, emoji: "🥜", category: "Снеки" },
+  { id: 8,  name: "Протеиновый батончик",   price: 18000, emoji: "💪", category: "Снеки",   badge: "new" },
+  { id: 9,  name: "Сэндвич с курицей",      price: 22000, emoji: "🥪", category: "Еда",     badge: "hit" },
+  { id: 10, name: "Салат Цезарь",           price: 28000, emoji: "🥗", category: "Еда" },
+  { id: 11, name: "Пирожок с мясом",        price: 8000,  emoji: "🥟", category: "Еда" },
+  { id: 12, name: "Йогурт Активиа",         price: 9000,  emoji: "🫙", category: "Еда" },
+  { id: 13, name: "Американо",              price: 12000, emoji: "☕", category: "Кофе" },
+  { id: 14, name: "Капучино",               price: 15000, emoji: "☕", category: "Кофе",    badge: "hit" },
+  { id: 15, name: "Чай зелёный",            price: 8000,  emoji: "🍵", category: "Кофе" },
+];
+
+const FALLBACK_BANNER = { text: "Свежая еда и напитки — прямо здесь!", emoji: "🔥", color: "#FFD600" };
+
+const CATEGORIES = ["Все", "Напитки", "Снеки", "Еда", "Кофе"];
+
+const BADGE_MAP = {
+  hit:  { emoji: "🔥", label: "Хит",       bg: "#E8000D", color: "#fff" },
+  new:  { emoji: "✨", label: "Новинка",    bg: "#7c3aed", color: "#fff" },
+  sale: { emoji: "🏷", label: "Акция",      bg: "#d97706", color: "#fff" },
+  last: { emoji: "⚠️", label: "Последний",  bg: "#ca8a04", color: "#1a1a1a" },
+};
+
+function formatPrice(p) {
+  return p.toLocaleString("ru-RU") + " сум";
+}
+
+function QRPattern({ value, size = 180 }) {
+  const cells = 21;
+  const seed = value.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
+  const grid = Array.from({ length: cells }, (_, r) =>
+    Array.from({ length: cells }, (_, c) => {
+      const inCorner = (r < 7 && c < 7) || (r < 7 && c >= cells - 7) || (r >= cells - 7 && c < 7);
+      if (inCorner) {
+        const edgeR = r === 0 || r === 6 || r === cells - 7 || r === cells - 1;
+        const edgeC = c === 0 || c === 6 || c === cells - 7 || c === cells - 1;
+        const inner =
+          (r >= 2 && r <= 4 && c >= 2 && c <= 4) ||
+          (r >= 2 && r <= 4 && c >= cells - 5 && c <= cells - 3) ||
+          (r >= cells - 5 && r <= cells - 3 && c >= 2 && c <= 4);
+        return edgeR || edgeC || inner ? 1 : 0;
+      }
+      return ((seed * (r + 1) * (c + 1) * 2654435761) >>> 0) % 3 === 0 ? 1 : 0;
+    })
+  );
+  const cs = size / cells;
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+      <rect width={size} height={size} fill="white" rx="6" />
+      {grid.map((row, r) =>
+        row.map((cell, c) =>
+          cell ? <rect key={`${r}-${c}`} x={c * cs} y={r * cs} width={cs} height={cs} fill="#1a1a1a" /> : null
+        )
+      )}
+    </svg>
+  );
+}
+
+export default function KioskApp() {
+  const [products, setProducts] = useState(FALLBACK_PRODUCTS);
+  const [banner, setBanner] = useState(FALLBACK_BANNER);
+  const [cart, setCart] = useState([]);
+  const [category, setCategory] = useState("Все");
+  const [screen, setScreen] = useState("catalog");
+  const [timeLeft, setTimeLeft] = useState(60);
+  const [paymentRef] = useState(`KSK-${Date.now().toString(36).toUpperCase()}`);
+
+  useEffect(() => {
+    if (!supabase) return;
+    supabase.from("products").select("*").eq("visible", true).order("created_at")
+      .then(({ data }) => { if (data?.length) setProducts(data); });
+  }, []);
+
+  useEffect(() => {
+    if (!supabase) return;
+    supabase.from("banners").select("*").eq("active", true).limit(1)
+      .then(({ data }) => { if (data?.[0]) setBanner(data[0]); });
+  }, []);
+
+  useEffect(() => {
+    if (screen !== "payment") return;
+    setTimeLeft(60);
+    const iv = setInterval(() => {
+      setTimeLeft(t => {
+        if (t <= 1) { clearInterval(iv); setScreen("catalog"); return 60; }
+        return t - 1;
+      });
+    }, 1000);
+    return () => clearInterval(iv);
+  }, [screen]);
+
+  const filtered = category === "Все" ? products : products.filter(p => p.category === category);
+  const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
+  const cartCount = cart.reduce((s, i) => s + i.qty, 0);
+
+  const addToCart = (product) => {
+    setCart(prev => {
+      const ex = prev.find(i => i.id === product.id);
+      if (ex) return prev.map(i => i.id === product.id ? { ...i, qty: i.qty + 1 } : i);
+      return [...prev, { ...product, qty: 1 }];
+    });
+  };
+
+  const removeFromCart = (id) => {
+    setCart(prev => {
+      const item = prev.find(i => i.id === id);
+      if (item.qty === 1) return prev.filter(i => i.id !== id);
+      return prev.map(i => i.id === id ? { ...i, qty: i.qty - 1 } : i);
+    });
+  };
+
+  const handlePaymentSuccess = async () => {
+    if (supabase) {
+      await supabase.from("orders").insert([{
+        items: cart.map(i => ({ id: i.id, name: i.name, emoji: i.emoji, price: i.price, qty: i.qty })),
+        total,
+        status: "paid",
+      }]).catch(() => {});
+    }
+    setCart([]);
+    setScreen("success");
+  };
+
+  return (
+    <div style={{
+      minHeight: "100vh",
+      background: "#ffffff",
+      color: "#1a1a1a",
+      fontFamily: "'Inter', system-ui, sans-serif",
+      display: "flex",
+      flexDirection: "column",
+      maxWidth: 480,
+      margin: "0 auto",
+    }}>
+
+      {/* ── HEADER ── */}
+      <div style={{
+        background: "#E8000D",
+        padding: "14px 20px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        boxShadow: "0 3px 12px rgba(232,0,13,0.3)",
+      }}>
+        <div>
+          <div style={{ fontSize: 20, fontWeight: 900, color: "#fff", letterSpacing: "-0.5px" }}>
+            🏪 МикроМаркет
+          </div>
+          <div style={{ fontSize: 11, color: "rgba(255,255,255,0.7)", marginTop: 1 }}>
+            БЦ Навои · этаж 3
+          </div>
+        </div>
+        {screen !== "payment" && screen !== "success" && (
+          <button onClick={() => cartCount > 0 && setScreen("cart")} style={{
+            background: cartCount > 0 ? "#FFD600" : "rgba(255,255,255,0.15)",
+            border: "none",
+            borderRadius: 12,
+            padding: "9px 14px",
+            color: cartCount > 0 ? "#1a1a1a" : "rgba(255,255,255,0.6)",
+            fontSize: 13,
+            fontWeight: 800,
+            cursor: cartCount > 0 ? "pointer" : "default",
+            fontFamily: "inherit",
+            transition: "all 0.2s",
+          }}>
+            🛒 {cartCount > 0 ? `${cartCount} · ${formatPrice(total)}` : "Пусто"}
+          </button>
+        )}
+      </div>
+
+      {/* ── CATALOG ── */}
+      {screen === "catalog" && (
+        <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+
+          {/* Promo banner from Supabase */}
+          <div style={{
+            background: banner.color,
+            padding: "10px 20px",
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+          }}>
+            <span style={{ fontSize: 18 }}>{banner.emoji}</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: "#1a1a1a" }}>
+              {banner.text}
+            </span>
+          </div>
+
+          {/* Categories */}
+          <div style={{
+            display: "flex", gap: 8, padding: "12px 14px",
+            overflowX: "auto", scrollbarWidth: "none",
+            background: "#fff",
+            borderBottom: "1px solid #f0f0f0",
+          }}>
+            {CATEGORIES.map(cat => (
+              <button key={cat} onClick={() => setCategory(cat)} style={{
+                padding: "7px 16px",
+                borderRadius: 20,
+                border: "none",
+                background: category === cat ? "#E8000D" : "#f5f5f5",
+                color: category === cat ? "#fff" : "#666",
+                fontSize: 13, fontWeight: 700, cursor: "pointer",
+                whiteSpace: "nowrap", fontFamily: "inherit",
+                transition: "all 0.15s",
+              }}>{cat}</button>
+            ))}
+          </div>
+
+          {/* Products grid */}
+          <div style={{
+            display: "grid", gridTemplateColumns: "1fr 1fr",
+            gap: 12, padding: "12px 12px 100px",
+            overflowY: "auto", background: "#f8f8f8",
+          }}>
+            {filtered.map(product => {
+              const inCart = cart.find(i => i.id === product.id);
+              const badge = product.badge && BADGE_MAP[product.badge];
+              return (
+                <div key={product.id} style={{
+                  background: "#fff",
+                  borderRadius: 16,
+                  padding: "14px 12px",
+                  border: inCart ? "2px solid #E8000D" : "2px solid #f0f0f0",
+                  boxShadow: inCart
+                    ? "0 4px 16px rgba(232,0,13,0.15)"
+                    : "0 2px 8px rgba(0,0,0,0.06)",
+                  transition: "all 0.15s",
+                  position: "relative",
+                }}>
+                  {badge && (
+                    <div style={{ marginBottom: 6 }}>
+                      <span style={{
+                        display: "inline-flex", alignItems: "center", gap: 3,
+                        background: badge.bg, color: badge.color,
+                        fontSize: 10, fontWeight: 800, padding: "3px 7px",
+                        borderRadius: 6,
+                      }}>
+                        {badge.emoji} {badge.label}
+                      </span>
+                    </div>
+                  )}
+                  <div style={{ fontSize: 36, marginBottom: 8, textAlign: "center" }}>{product.emoji}</div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: "#333", marginBottom: 4, lineHeight: 1.3 }}>
+                    {product.name}
+                  </div>
+                  <div style={{ fontSize: 15, fontWeight: 900, color: "#E8000D", marginBottom: 10 }}>
+                    {formatPrice(product.price)}
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    {inCart ? (
+                      <>
+                        <button onClick={() => removeFromCart(product.id)} style={{
+                          width: 32, height: 32, borderRadius: 8, border: "none",
+                          background: "#f5f5f5", color: "#333", fontSize: 18,
+                          cursor: "pointer", fontWeight: 800, fontFamily: "inherit",
+                        }}>−</button>
+                        <span style={{ fontSize: 16, fontWeight: 900, minWidth: 24, textAlign: "center", color: "#E8000D" }}>
+                          {inCart.qty}
+                        </span>
+                        <button onClick={() => addToCart(product)} style={{
+                          width: 32, height: 32, borderRadius: 8, border: "none",
+                          background: "#E8000D", color: "#fff", fontSize: 18,
+                          cursor: "pointer", fontWeight: 800, fontFamily: "inherit",
+                        }}>+</button>
+                      </>
+                    ) : (
+                      <button onClick={() => addToCart(product)} style={{
+                        width: "100%", padding: "8px 0", borderRadius: 10,
+                        border: "none", background: "#FFD600", color: "#1a1a1a",
+                        fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
+                      }}>+ Добавить</button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ── CART ── */}
+      {screen === "cart" && (
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", background: "#f8f8f8" }}>
+          <div style={{ background: "#fff", padding: "14px 16px", borderBottom: "1px solid #f0f0f0" }}>
+            <button onClick={() => setScreen("catalog")} style={{
+              background: "none", border: "none", color: "#E8000D",
+              fontSize: 14, cursor: "pointer", fontWeight: 700, fontFamily: "inherit",
+              padding: "0 0 10px", display: "block",
+            }}>← Назад к каталогу</button>
+            <div style={{ fontSize: 20, fontWeight: 900, color: "#1a1a1a" }}>🛒 Ваш заказ</div>
+          </div>
+
+          <div style={{ flex: 1, overflowY: "auto", background: "#fff", margin: "12px 12px 0", borderRadius: 16, padding: "0 16px" }}>
+            {cart.map(item => (
+              <div key={item.id} style={{
+                display: "flex", alignItems: "center", gap: 12,
+                padding: "14px 0", borderBottom: "1px solid #f5f5f5",
+              }}>
+                <span style={{ fontSize: 28 }}>{item.emoji}</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: "#333" }}>{item.name}</div>
+                  <div style={{ fontSize: 12, color: "#999" }}>{formatPrice(item.price)} × {item.qty}</div>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <button onClick={() => removeFromCart(item.id)} style={{
+                    width: 28, height: 28, borderRadius: 7, border: "none",
+                    background: "#f5f5f5", color: "#333", fontSize: 16,
+                    cursor: "pointer", fontFamily: "inherit", fontWeight: 800,
+                  }}>−</button>
+                  <span style={{ fontSize: 14, fontWeight: 800, minWidth: 20, textAlign: "center", color: "#E8000D" }}>
+                    {item.qty}
+                  </span>
+                  <button onClick={() => addToCart(item)} style={{
+                    width: 28, height: 28, borderRadius: 7, border: "none",
+                    background: "#E8000D", color: "#fff", fontSize: 16,
+                    cursor: "pointer", fontFamily: "inherit", fontWeight: 800,
+                  }}>+</button>
+                </div>
+                <div style={{ fontSize: 14, fontWeight: 900, color: "#E8000D", minWidth: 72, textAlign: "right" }}>
+                  {formatPrice(item.price * item.qty)}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ padding: "16px 12px", background: "#f8f8f8" }}>
+            <div style={{
+              background: "#fff", borderRadius: 16, padding: "14px 16px", marginBottom: 10,
+              display: "flex", justifyContent: "space-between", alignItems: "center",
+            }}>
+              <span style={{ fontSize: 16, fontWeight: 700, color: "#333" }}>Итого</span>
+              <span style={{ fontSize: 20, fontWeight: 900, color: "#E8000D" }}>{formatPrice(total)}</span>
+            </div>
+            <button onClick={() => setScreen("payment")} style={{
+              width: "100%", padding: 16, borderRadius: 14, border: "none",
+              background: "#E8000D", color: "#fff", fontSize: 16, fontWeight: 800,
+              cursor: "pointer", fontFamily: "inherit", marginBottom: 8,
+              boxShadow: "0 4px 16px rgba(232,0,13,0.35)",
+            }}>
+              Оплатить через Payme / Click →
+            </button>
+            <button onClick={() => { setCart([]); setScreen("catalog"); }} style={{
+              width: "100%", padding: 12, borderRadius: 14,
+              border: "1.5px solid #e0e0e0", background: "#fff",
+              color: "#999", fontSize: 14, cursor: "pointer", fontFamily: "inherit", fontWeight: 600,
+            }}>
+              Очистить корзину
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── PAYMENT ── */}
+      {screen === "payment" && (
+        <div style={{
+          flex: 1, display: "flex", flexDirection: "column",
+          alignItems: "center", justifyContent: "center",
+          padding: 24, textAlign: "center", background: "#fff",
+        }}>
+          <div style={{ fontSize: 13, color: "#999", marginBottom: 6 }}>К оплате</div>
+          <div style={{ fontSize: 36, fontWeight: 900, color: "#E8000D", marginBottom: 4 }}>
+            {formatPrice(total)}
+          </div>
+          <div style={{ fontSize: 13, color: "#999", marginBottom: 22 }}>
+            Отсканируйте QR в Payme или Click
+          </div>
+
+          <div style={{
+            background: "#fff", borderRadius: 20, padding: 16, marginBottom: 18,
+            boxShadow: "0 8px 32px rgba(232,0,13,0.15)",
+            border: "3px solid #FFD600",
+          }}>
+            <QRPattern value={paymentRef + total} size={190} />
+          </div>
+
+          <div style={{ fontSize: 11, color: "#ccc", marginBottom: 20, fontFamily: "monospace" }}>
+            {paymentRef}-{total}
+          </div>
+
+          <div style={{ width: "100%", marginBottom: 22 }}>
+            <div style={{
+              background: "#f0f0f0", borderRadius: 10, height: 7, overflow: "hidden", marginBottom: 6,
+            }}>
+              <div style={{
+                height: "100%", borderRadius: 10,
+                background: "linear-gradient(90deg, #FFD600, #E8000D)",
+                width: `${(timeLeft / 60) * 100}%`,
+                transition: "width 1s linear",
+              }} />
+            </div>
+            <div style={{ fontSize: 12, color: "#aaa" }}>⏱ Осталось {timeLeft} сек</div>
+          </div>
+
+          <div style={{ display: "flex", gap: 10, width: "100%" }}>
+            <button onClick={() => setScreen("cart")} style={{
+              flex: 1, padding: 14, borderRadius: 12, fontFamily: "inherit",
+              border: "1.5px solid #e0e0e0", background: "#fff",
+              color: "#999", fontSize: 14, cursor: "pointer", fontWeight: 600,
+            }}>← Назад</button>
+            <button onClick={handlePaymentSuccess} style={{
+              flex: 2, padding: 14, borderRadius: 12, fontFamily: "inherit",
+              border: "none", background: "#16a34a",
+              color: "#fff", fontSize: 14, cursor: "pointer", fontWeight: 800,
+            }}>✓ Симулировать оплату</button>
+          </div>
+        </div>
+      )}
+
+      {/* ── SUCCESS ── */}
+      {screen === "success" && (
+        <div style={{
+          flex: 1, display: "flex", flexDirection: "column",
+          alignItems: "center", justifyContent: "center",
+          padding: 32, textAlign: "center", background: "#fff",
+        }}>
+          <div style={{
+            width: 96, height: 96, borderRadius: "50%",
+            background: "#FFD600",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 48, marginBottom: 22,
+            boxShadow: "0 8px 32px rgba(255,214,0,0.4)",
+          }}>✅</div>
+
+          <div style={{ fontSize: 28, fontWeight: 900, color: "#1a1a1a", marginBottom: 8 }}>
+            Оплата прошла!
+          </div>
+          <div style={{ fontSize: 15, color: "#666", marginBottom: 28, lineHeight: 1.7 }}>
+            Возьмите ваши товары с полки.<br />
+            <span style={{ color: "#E8000D", fontWeight: 700 }}>Приятного аппетита! 🍽</span>
+          </div>
+
+          <div style={{
+            background: "#f8f8f8", borderRadius: 12, padding: "12px 20px", marginBottom: 28,
+            fontSize: 11, color: "#bbb", fontFamily: "monospace",
+            border: "1px solid #f0f0f0",
+          }}>
+            Чек: {paymentRef}-{total}
+          </div>
+
+          <button onClick={() => setScreen("catalog")} style={{
+            padding: "16px 48px", borderRadius: 14, fontFamily: "inherit",
+            border: "none", background: "#E8000D",
+            color: "#fff", fontSize: 16, fontWeight: 900, cursor: "pointer",
+            boxShadow: "0 4px 20px rgba(232,0,13,0.35)",
+          }}>← На главную</button>
+        </div>
+      )}
+    </div>
+  );
+}
