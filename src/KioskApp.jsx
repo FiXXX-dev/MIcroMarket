@@ -335,11 +335,20 @@ export default function KioskApp() {
                   )}
                   {product.image_url ? (
                     <div style={{
-                      width: "100%", height: 90, marginBottom: 8, borderRadius: 12,
-                      background: `center/cover no-repeat url(${product.image_url})`,
-                    }} />
+                      width: "100%", height: 120, marginBottom: 8, borderRadius: 12,
+                      background: "#f7f7f7", border: "1px solid #f0f0f0",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      overflow: "hidden",
+                    }}>
+                      <img src={product.image_url} alt={product.name} style={{
+                        maxWidth: "100%", maxHeight: "100%", objectFit: "contain",
+                      }} />
+                    </div>
                   ) : (
-                    <div style={{ fontSize: 36, marginBottom: 8, textAlign: "center" }}>{product.emoji}</div>
+                    <div style={{
+                      height: 120, marginBottom: 8, borderRadius: 12, background: "#f7f7f7",
+                      display: "flex", alignItems: "center", justifyContent: "center", fontSize: 52,
+                    }}>{product.emoji}</div>
                   )}
                   <div style={{ fontSize: 13, fontWeight: 600, color: "#333", marginBottom: 4, lineHeight: 1.3 }}>
                     {product.name}
@@ -407,9 +416,14 @@ export default function KioskApp() {
               }}>
                 {item.image_url ? (
                   <div style={{
-                    width: 40, height: 40, borderRadius: 8, flexShrink: 0,
-                    background: `center/cover no-repeat url(${item.image_url})`,
-                  }} />
+                    width: 44, height: 44, borderRadius: 8, flexShrink: 0,
+                    background: "#f7f7f7", border: "1px solid #f0f0f0",
+                    display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden",
+                  }}>
+                    <img src={item.image_url} alt={item.name} style={{
+                      maxWidth: "100%", maxHeight: "100%", objectFit: "contain",
+                    }} />
+                  </div>
                 ) : (
                   <span style={{ fontSize: 28 }}>{item.emoji}</span>
                 )}
