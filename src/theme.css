@@ -1,0 +1,23 @@
+/* Animated cyberpunk header — flowing gradient + pulsing neon glow */
+@keyframes neonShift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes neonPulse {
+  0%, 100% { box-shadow: 0 0 16px rgba(255,45,157,0.35), 0 6px 26px rgba(0,229,255,0.14); }
+  50%      { box-shadow: 0 0 32px rgba(255,45,157,0.65), 0 8px 40px rgba(0,229,255,0.30); }
+}
+
+.neon-header {
+  background: linear-gradient(120deg, #2b0f4a, #4a0f6e, #122a6b, #0c1c3c, #2b0f4a);
+  background-size: 300% 300%;
+  border-bottom: 2px solid rgba(255, 45, 157, 0.75);
+  animation: neonShift 12s ease infinite, neonPulse 4s ease-in-out infinite;
+}
+
+/* Respect users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .neon-header { animation: none; }
+}

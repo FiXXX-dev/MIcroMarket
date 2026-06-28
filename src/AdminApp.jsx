@@ -880,11 +880,9 @@ function LocationsScreen({ onEnter, onLogout }) {
       minHeight: "100vh", background: "#f3f4f6",
       fontFamily: "'Inter', system-ui, sans-serif",
     }}>
-      <div style={{
-        background: "linear-gradient(120deg, #2b0f4a 0%, #181235 45%, #0c1c3c 100%)", padding: "14px 24px",
+      <div className="neon-header" style={{
+        padding: "14px 24px",
         display: "flex", alignItems: "center", justifyContent: "space-between",
-        borderBottom: "2px solid rgba(255,45,157,0.7)",
-        boxShadow: "0 0 22px rgba(255,45,157,0.40), 0 6px 30px rgba(0,229,255,0.18)",
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <span style={{ fontSize: 20 }}>🏪</span>
@@ -1063,11 +1061,9 @@ export default function AdminApp() {
       fontFamily: "'Inter', system-ui, sans-serif",
     }}>
       {/* Navbar */}
-      <div style={{
-        background: "linear-gradient(120deg, #2b0f4a 0%, #181235 45%, #0c1c3c 100%)", padding: "0 24px",
+      <div className="neon-header" style={{
+        padding: "0 24px",
         display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap",
-        borderBottom: "2px solid rgba(255,45,157,0.7)",
-        boxShadow: "0 0 22px rgba(255,45,157,0.40), 0 6px 30px rgba(0,229,255,0.18)",
         position: "sticky", top: 0, zIndex: 100,
       }}>
         <div style={{ padding: "14px 0", display: "flex", alignItems: "center", gap: 10, marginRight: 8 }}>
