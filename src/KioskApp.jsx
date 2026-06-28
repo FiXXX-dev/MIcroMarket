@@ -268,7 +268,8 @@ export default function KioskApp() {
 
   return (
     <div style={{
-      minHeight: "100vh",
+      height: "100vh",
+      overflow: "hidden",
       background: "#ffffff",
       color: "#1a1a1a",
       fontFamily: "'Inter', system-ui, sans-serif",
@@ -278,12 +279,14 @@ export default function KioskApp() {
       margin: "0 auto",
     }}>
 
-      {/* ── HEADER ── */}
+      {/* ── HEADER (pinned) ── */}
       <div className="neon-header" style={{
         padding: "14px 20px",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
+        flexShrink: 0,
+        zIndex: 2,
       }}>
         <div>
           <div className="glitch" data-text="🏪 МикроМаркет" style={{ fontSize: 20, fontWeight: 900, color: "#fff", letterSpacing: "-0.5px", textShadow: "0 0 16px rgba(255,45,157,0.75), 0 0 32px rgba(0,229,255,0.35)" }}>
@@ -313,9 +316,9 @@ export default function KioskApp() {
 
       {/* ── CATALOG ── */}
       {screen === "catalog" && (
-        <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
 
-          {/* Promo banner from Supabase */}
+          {/* Promo banner from Supabase (pinned) */}
           <div style={{
             background: banner.image_url
               ? `center/cover no-repeat url(${banner.image_url})`
@@ -326,6 +329,7 @@ export default function KioskApp() {
             gap: 8,
             position: "relative",
             overflow: "hidden",
+            flexShrink: 0,
           }}>
             {banner.image_url && (
               <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.35)" }} />
@@ -340,12 +344,13 @@ export default function KioskApp() {
             </span>
           </div>
 
-          {/* Categories */}
+          {/* Categories (pinned) */}
           <div style={{
             display: "flex", gap: 8, padding: "12px 14px",
             overflowX: "auto", scrollbarWidth: "none",
             background: "#fff",
             borderBottom: "1px solid #f0f0f0",
+            flexShrink: 0,
           }}>
             {CATEGORIES.map(cat => (
               <button key={cat} onClick={() => setCategory(cat)} style={{
@@ -361,8 +366,9 @@ export default function KioskApp() {
             ))}
           </div>
 
-          {/* Products grid */}
+          {/* Products grid (only this scrolls) */}
           <div style={{
+            flex: 1, minHeight: 0,
             display: "grid", gridTemplateColumns: "1fr 1fr",
             gap: 12, padding: "12px 12px 100px",
             overflowY: "auto", background: "#f8f8f8",
@@ -461,7 +467,7 @@ export default function KioskApp() {
 
       {/* ── CART ── */}
       {screen === "cart" && (
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", background: "#f8f8f8" }}>
+        <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", background: "#f8f8f8" }}>
           <div style={{ background: "#fff", padding: "14px 16px", borderBottom: "1px solid #f0f0f0" }}>
             <button onClick={() => setScreen("catalog")} style={{
               background: "none", border: "none", color: "#FF2D55",
