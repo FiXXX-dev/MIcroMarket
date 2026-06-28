@@ -4,7 +4,7 @@ import { supabase, uploadImage } from "./supabase";
 const ADMIN_PASS = "admin123";
 
 const BADGE_MAP = {
-  hit:  { emoji: "🔥", label: "Хит",       bg: "#E8000D", color: "#fff" },
+  hit:  { emoji: "🔥", label: "Хит",       bg: "#FF2D55", color: "#fff" },
   new:  { emoji: "✨", label: "Новинка",    bg: "#7c3aed", color: "#fff" },
   sale: { emoji: "🏷", label: "Акция",      bg: "#d97706", color: "#fff" },
   last: { emoji: "⚠️", label: "Последний",  bg: "#ca8a04", color: "#1a1a1a" },
@@ -36,7 +36,7 @@ const S = {
   },
   btnPrimary: {
     padding: "11px 20px", borderRadius: 8, border: "none",
-    background: "#E8000D", color: "#fff", fontSize: 14, fontWeight: 700,
+    background: "#FF2D55", color: "#fff", fontSize: 14, fontWeight: 700,
     cursor: "pointer", fontFamily: "inherit",
   },
   btnSecondary: {
@@ -133,7 +133,7 @@ function ImageUpload({ value, onChange, fallback }) {
           )}
         </div>
       </div>
-      {err && <div style={{ color: "#E8000D", fontSize: 12, marginTop: 6 }}>{err}</div>}
+      {err && <div style={{ color: "#FF2D55", fontSize: 12, marginTop: 6 }}>{err}</div>}
     </div>
   );
 }
@@ -263,7 +263,7 @@ function ProductForm({ initial, onSave, onClose, saving }) {
           <label style={S.label}>Кол-во на складе</label>
           <input type="number" value={form.quantity} onChange={e => set("quantity", e.target.value)}
             min="0" style={S.input} />
-          <div style={{ fontSize: 11, color: form.quantity == 0 ? "#E8000D" : "#aaa", marginTop: 4 }}>
+          <div style={{ fontSize: 11, color: form.quantity == 0 ? "#FF2D55" : "#aaa", marginTop: 4 }}>
             {form.quantity == 0 ? "0 — товар скрыт как «Нет в наличии»" : "0 = нет в наличии"}
           </div>
         </div>
@@ -278,7 +278,7 @@ function ProductForm({ initial, onSave, onClose, saving }) {
         <button type="button" onClick={onClose} style={{ ...S.btnSecondary, flex: 1 }}>Отмена</button>
         <button type="submit" disabled={saving} style={{
           ...S.btnPrimary, flex: 2,
-          background: saving ? "#ccc" : "#E8000D",
+          background: saving ? "#ccc" : "#FF2D55",
           cursor: saving ? "default" : "pointer",
         }}>
           {saving ? "Сохранение..." : (initial ? "Сохранить изменения" : "Добавить товар")}
@@ -293,7 +293,7 @@ function BannerForm({ initial, onSave, onClose, saving }) {
   const [form, setForm] = useState({
     text:      initial?.text      || "",
     emoji:     initial?.emoji     || "🔥",
-    color:     initial?.color     || "#FFD600",
+    color:     initial?.color     || "#FFE83A",
     image_url: initial?.image_url || null,
     active:    initial?.active    ?? true,
   });
@@ -321,7 +321,7 @@ function BannerForm({ initial, onSave, onClose, saving }) {
             <input type="color" value={form.color} onChange={e => set("color", e.target.value)}
               style={{ width: 44, height: 40, padding: 2, borderRadius: 6, border: "1.5px solid #e0e0e0", cursor: "pointer" }} />
             <input value={form.color} onChange={e => set("color", e.target.value)}
-              placeholder="#FFD600" style={{ ...S.input, flex: 1 }} />
+              placeholder="#FFE83A" style={{ ...S.input, flex: 1 }} />
           </div>
         </div>
         <div style={{ flex: 1 }}>
@@ -361,7 +361,7 @@ function BannerForm({ initial, onSave, onClose, saving }) {
         <button type="button" onClick={onClose} style={{ ...S.btnSecondary, flex: 1 }}>Отмена</button>
         <button type="submit" disabled={saving} style={{
           ...S.btnPrimary, flex: 2,
-          background: saving ? "#ccc" : "#E8000D",
+          background: saving ? "#ccc" : "#FF2D55",
           cursor: saving ? "default" : "pointer",
         }}>
           {saving ? "Сохранение..." : (initial ? "Сохранить изменения" : "Добавить баннер")}
@@ -464,7 +464,7 @@ function ProductsTab({ locationId }) {
                     </div>
                   </td>
                   <td style={{ padding: "12px 14px", fontSize: 13, color: "#777" }}>{p.category}</td>
-                  <td style={{ padding: "12px 14px", fontSize: 14, fontWeight: 700, color: "#E8000D", whiteSpace: "nowrap" }}>
+                  <td style={{ padding: "12px 14px", fontSize: 14, fontWeight: 700, color: "#FF2D55", whiteSpace: "nowrap" }}>
                     {formatPrice(p.price)}
                   </td>
                   <td style={{ padding: "12px 14px" }}>
@@ -694,7 +694,7 @@ function OrdersTab({ locationId }) {
         {[
           { label: "Всего заказов",  value: orders.length,      color: "#1a1a1a" },
           { label: "Оплачено",       value: paidOrders.length,  color: "#16a34a" },
-          { label: "Общая выручка",  value: formatPrice(totalRevenue), color: "#E8000D" },
+          { label: "Общая выручка",  value: formatPrice(totalRevenue), color: "#FF2D55" },
         ].map(s => (
           <div key={s.label} style={{ ...S.card, flex: 1, minWidth: 140, padding: "16px 18px" }}>
             <div style={{ fontSize: 11, color: "#aaa", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 6 }}>{s.label}</div>
@@ -741,7 +741,7 @@ function OrdersTab({ locationId }) {
                   </div>
                 </div>
                 <div style={{ textAlign: "right", flexShrink: 0 }}>
-                  <div style={{ fontSize: 16, fontWeight: 900, color: "#E8000D" }}>
+                  <div style={{ fontSize: 16, fontWeight: 900, color: "#FF2D55" }}>
                     {formatPrice(o.total)}
                   </div>
                   <div style={{
@@ -778,7 +778,7 @@ function OrdersTab({ locationId }) {
                       fontSize: 14, fontWeight: 800,
                     }}>
                       <span style={{ color: "#888" }}>Итого</span>
-                      <span style={{ color: "#E8000D" }}>{formatPrice(o.total)}</span>
+                      <span style={{ color: "#FF2D55" }}>{formatPrice(o.total)}</span>
                     </div>
                   </div>
                 </div>
@@ -826,7 +826,7 @@ function LocationForm({ initial, onSave, onClose, saving }) {
         <button type="button" onClick={onClose} style={{ ...S.btnSecondary, flex: 1 }}>Отмена</button>
         <button type="submit" disabled={saving} style={{
           ...S.btnPrimary, flex: 2,
-          background: saving ? "#ccc" : "#E8000D",
+          background: saving ? "#ccc" : "#FF2D55",
           cursor: saving ? "default" : "pointer",
         }}>
           {saving ? "Сохранение..." : (initial ? "Сохранить" : "Добавить точку")}
@@ -881,9 +881,10 @@ function LocationsScreen({ onEnter, onLogout }) {
       fontFamily: "'Inter', system-ui, sans-serif",
     }}>
       <div style={{
-        background: "#E8000D", padding: "14px 24px",
+        background: "linear-gradient(180deg, #1c1c24 0%, #141419 100%)", padding: "14px 24px",
         display: "flex", alignItems: "center", justifyContent: "space-between",
-        boxShadow: "0 2px 16px rgba(232,0,13,0.3)",
+        borderBottom: "1.5px solid rgba(255,45,85,0.55)",
+        boxShadow: "0 4px 24px rgba(255,45,85,0.18)",
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <span style={{ fontSize: 20 }}>🏪</span>
@@ -942,7 +943,7 @@ function LocationsScreen({ onEnter, onLogout }) {
                     background: "#fff1f0", color: "#dc2626", fontSize: 12,
                     cursor: "pointer", fontFamily: "inherit", fontWeight: 600,
                   }}>🗑</button>
-                  <div style={{ flex: 1, textAlign: "right", color: "#E8000D", fontSize: 13, fontWeight: 700, alignSelf: "center" }}>
+                  <div style={{ flex: 1, textAlign: "right", color: "#FF2D55", fontSize: 13, fontWeight: 700, alignSelf: "center" }}>
                     Открыть →
                   </div>
                 </div>
@@ -1002,10 +1003,10 @@ function LoginScreen({ onLogin }) {
             autoFocus
             style={{
               ...S.input, marginBottom: error ? 6 : 16,
-              border: error ? "1.5px solid #E8000D" : "1.5px solid #e0e0e0",
+              border: error ? "1.5px solid #FF2D55" : "1.5px solid #e0e0e0",
             }}
           />
-          {error && <div style={{ color: "#E8000D", fontSize: 13, marginBottom: 14 }}>{error}</div>}
+          {error && <div style={{ color: "#FF2D55", fontSize: 13, marginBottom: 14 }}>{error}</div>}
           <button type="submit" style={{ ...S.btnPrimary, width: "100%", padding: "14px 0", fontSize: 15 }}>
             Войти →
           </button>
@@ -1063,9 +1064,10 @@ export default function AdminApp() {
     }}>
       {/* Navbar */}
       <div style={{
-        background: "#E8000D", padding: "0 24px",
+        background: "linear-gradient(180deg, #1c1c24 0%, #141419 100%)", padding: "0 24px",
         display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap",
-        boxShadow: "0 2px 16px rgba(232,0,13,0.3)",
+        borderBottom: "1.5px solid rgba(255,45,85,0.55)",
+        boxShadow: "0 4px 24px rgba(255,45,85,0.18)",
         position: "sticky", top: 0, zIndex: 100,
       }}>
         <div style={{ padding: "14px 0", display: "flex", alignItems: "center", gap: 10, marginRight: 8 }}>
@@ -1091,7 +1093,7 @@ export default function AdminApp() {
           {TABS.map(t => (
             <button key={t.id} onClick={() => setTab(t.id)} style={{
               padding: "8px 16px", borderRadius: 8, border: "none",
-              background: tab === t.id ? "#FFD600" : "rgba(255,255,255,0.12)",
+              background: tab === t.id ? "#FFE83A" : "rgba(255,255,255,0.12)",
               color: tab === t.id ? "#1a1a1a" : "rgba(255,255,255,0.85)",
               fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
               transition: "all 0.15s",
