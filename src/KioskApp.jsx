@@ -286,7 +286,7 @@ export default function KioskApp() {
         justifyContent: "space-between",
       }}>
         <div>
-          <div style={{ fontSize: 20, fontWeight: 900, color: "#fff", letterSpacing: "-0.5px", textShadow: "0 0 16px rgba(255,45,157,0.75), 0 0 32px rgba(0,229,255,0.35)" }}>
+          <div className="glitch" data-text="🏪 МикроМаркет" style={{ fontSize: 20, fontWeight: 900, color: "#fff", letterSpacing: "-0.5px", textShadow: "0 0 16px rgba(255,45,157,0.75), 0 0 32px rgba(0,229,255,0.35)" }}>
             🏪 МикроМаркет
           </div>
           <div style={{ fontSize: 11, color: "rgba(255,255,255,0.7)", marginTop: 1 }}>
