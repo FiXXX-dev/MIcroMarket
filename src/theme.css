@@ -11,10 +11,34 @@
 }
 
 .neon-header {
+  position: relative;
+  overflow: hidden;
   background: linear-gradient(120deg, #2b0f4a, #4a0f6e, #122a6b, #0c1c3c, #2b0f4a);
   background-size: 300% 300%;
   border-bottom: 2px solid rgba(255, 45, 157, 0.75);
   animation: neonShift 12s ease infinite, neonPulse 4s ease-in-out infinite;
+}
+
+/* CRT scanlines overlay — faint horizontal lines with a slow vertical roll */
+.neon-header::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0) 0px,
+    rgba(0, 0, 0, 0) 2px,
+    rgba(0, 0, 0, 0.16) 3px
+  );
+  opacity: 0.55;
+  animation: scanRoll 8s linear infinite;
+}
+
+@keyframes scanRoll {
+  0%   { background-position-y: 0; }
+  100% { background-position-y: 6px; }
 }
 
 /* ── Glitch logo ── */
@@ -35,28 +59,28 @@
 }
 .glitch::before {
   color: #00e5ff;
-  animation: glitchTop 3.5s infinite steps(1);
+  animation: glitchTop 6.5s infinite steps(1);
 }
 .glitch::after {
   color: #ff2d9d;
-  animation: glitchBottom 3.5s infinite steps(1);
+  animation: glitchBottom 6.5s infinite steps(1);
 }
 
 /* Most of the cycle the copies are clipped away (clean text);
    a short burst near the end produces the glitch. */
 @keyframes glitchTop {
-  0%, 90%, 100% { clip-path: inset(0 0 100% 0); transform: translate(0, 0); }
-  91% { clip-path: inset(0 0 58% 0); transform: translate(-2px, -1px); }
-  93% { clip-path: inset(0 0 52% 0); transform: translate(2px, 1px); }
-  95% { clip-path: inset(0 0 66% 0); transform: translate(-1px, 0); }
-  97% { clip-path: inset(0 0 40% 0); transform: translate(1px, -1px); }
+  0%, 95%, 100% { clip-path: inset(0 0 100% 0); transform: translate(0, 0); }
+  95.5% { clip-path: inset(0 0 58% 0); transform: translate(-2px, -1px); }
+  96.5% { clip-path: inset(0 0 52% 0); transform: translate(2px, 1px); }
+  97.5% { clip-path: inset(0 0 66% 0); transform: translate(-1px, 0); }
+  98.5% { clip-path: inset(0 0 40% 0); transform: translate(1px, -1px); }
 }
 @keyframes glitchBottom {
-  0%, 90%, 100% { clip-path: inset(100% 0 0 0); transform: translate(0, 0); }
-  91% { clip-path: inset(54% 0 0 0); transform: translate(2px, 1px); }
-  93% { clip-path: inset(60% 0 0 0); transform: translate(-2px, -1px); }
-  95% { clip-path: inset(46% 0 0 0); transform: translate(1px, 1px); }
-  97% { clip-path: inset(64% 0 0 0); transform: translate(-1px, 0); }
+  0%, 95%, 100% { clip-path: inset(100% 0 0 0); transform: translate(0, 0); }
+  95.5% { clip-path: inset(54% 0 0 0); transform: translate(2px, 1px); }
+  96.5% { clip-path: inset(60% 0 0 0); transform: translate(-2px, -1px); }
+  97.5% { clip-path: inset(46% 0 0 0); transform: translate(1px, 1px); }
+  98.5% { clip-path: inset(64% 0 0 0); transform: translate(-1px, 0); }
 }
 
 /* Respect users who prefer reduced motion */
