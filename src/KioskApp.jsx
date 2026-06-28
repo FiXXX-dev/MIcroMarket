@@ -405,7 +405,7 @@ export default function KioskApp() {
                   {product.image_url ? (
                     <div style={{
                       width: "100%", height: 120, marginBottom: 8, borderRadius: 12,
-                      background: "#f7f7f7", border: "1px solid #f0f0f0",
+                      background: "#ffffff", border: "1px solid #f0f0f0",
                       display: "flex", alignItems: "center", justifyContent: "center",
                       overflow: "hidden",
                     }}>
@@ -415,7 +415,7 @@ export default function KioskApp() {
                     </div>
                   ) : (
                     <div style={{
-                      height: 120, marginBottom: 8, borderRadius: 12, background: "#f7f7f7",
+                      height: 120, marginBottom: 8, borderRadius: 12, background: "#ffffff",
                       display: "flex", alignItems: "center", justifyContent: "center", fontSize: 52,
                     }}>{product.emoji}</div>
                   )}
@@ -486,7 +486,7 @@ export default function KioskApp() {
                 {item.image_url ? (
                   <div style={{
                     width: 44, height: 44, borderRadius: 8, flexShrink: 0,
-                    background: "#f7f7f7", border: "1px solid #f0f0f0",
+                    background: "#ffffff", border: "1px solid #f0f0f0",
                     display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden",
                   }}>
                     <img src={item.image_url} alt={item.name} style={{
