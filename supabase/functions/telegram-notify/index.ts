@@ -48,17 +48,22 @@ Deno.serve(async (req) => {
       locName = loc?.name || "";
     }
 
+    const LOW_THRESHOLD = 5;
     const items = Array.isArray(order.items) ? order.items : [];
 
-    // Decrement stock for each purchased product and collect remaining qty
+    // Decrement stock for each purchased product and collect remaining qty + low-stock alerts
     const remaining: { name: string; qty: number }[] = [];
+    const lowAlerts: { name: string; qty: number }[] = [];
     for (const it of items) {
       if (!it.id) continue;
       const { data: prod } = await supabase.from("products").select("quantity, name").eq("id", it.id).single();
       if (!prod) continue;
-      const newQty = Math.max(0, (prod.quantity ?? 0) - (it.qty ?? 1));
+      const oldQty = prod.quantity ?? 0;
+      const newQty = Math.max(0, oldQty - (it.qty ?? 1));
       await supabase.from("products").update({ quantity: newQty }).eq("id", it.id);
       remaining.push({ name: prod.name, qty: newQty });
+      // Alert only when the item just crossed below the threshold (avoids spam)
+      if (newQty < LOW_THRESHOLD && oldQty >= LOW_THRESHOLD) lowAlerts.push({ name: prod.name, qty: newQty });
     }
 
     const when = new Date(order.created_at);
@@ -76,6 +81,13 @@ Deno.serve(async (req) => {
     if (remaining.length) {
       lines.push("📊 Остаток товаров:");
       for (const r of remaining) lines.push(`- ${r.name} — осталось ${r.qty} шт`);
+    }
+    if (lowAlerts.length) {
+      lines.push("");
+      lines.push("⚠️ <b>Низкий остаток — нужна приёмка:</b>");
+      for (const a of lowAlerts) {
+        lines.push(`❗ ${a.name} — ${a.qty <= 0 ? "закончился" : `осталось ${a.qty} шт`}`);
+      }
     }
 
     await sendMessage(CHAT_ID, lines.join("\n"));

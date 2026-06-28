@@ -28,11 +28,13 @@ const fmt = (n: number) => Number(n || 0).toLocaleString("ru-RU");
 
 const KEYBOARD = {
   reply_markup: {
-    keyboard: [["📊 Сегодня", "📈 Неделя", "🗓 Месяц"], ["📦 Остатки"]],
+    keyboard: [["📊 Сегодня", "📈 Неделя", "🗓 Месяц"], ["📦 Остатки", "➕ Приёмка"]],
     resize_keyboard: true,
     is_persistent: true,
   },
 };
+
+const RESTOCK_TAG = "#restock:"; // marker embedded in the force-reply prompt
 
 function supa() { return createClient(URL, KEY); }
 
@@ -80,6 +82,21 @@ async function locationKeyboard(prefix: "report" | "stock", period?: Period) {
   const suffix = period ? `:${period}` : "";
   const rows = locs.map((l) => [{ text: `📍 ${l.name}`, callback_data: `${prefix}:${l.id}${suffix}` }]);
   rows.push([{ text: "🌐 Все точки", callback_data: `${prefix}:all${suffix}` }]);
+  return { reply_markup: { inline_keyboard: rows } };
+}
+
+// Restock: pick a point first (no «Все точки»)
+async function restockLocationKeyboard() {
+  const locs = await getLocations();
+  const rows = locs.map((l) => [{ text: `📍 ${l.name}`, callback_data: `restock:${l.id}` }]);
+  return { reply_markup: { inline_keyboard: rows } };
+}
+
+// Restock: pick a product within a location
+async function restockProductKeyboard(locationId: string) {
+  const { data } = await supa().from("products")
+    .select("id, name, quantity").eq("location_id", locationId).order("name");
+  const rows = (data || []).map((p) => [{ text: `${p.name} · ${p.quantity} шт`, callback_data: `rp:${p.id}` }]);
   return { reply_markup: { inline_keyboard: rows } };
 }
 
@@ -229,6 +246,19 @@ Deno.serve(async (req) => {
           await sendMessage(chatId, target === "all" ? await reportAll(p) : await reportForLocation(target, p), KEYBOARD);
         } else if (kind === "stock") {
           await sendMessage(chatId, target === "all" ? await stockAll() : await stockForLocation(target), KEYBOARD);
+        } else if (kind === "restock") {
+          // target = location id → show its products
+          await sendMessage(chatId, "➕ Приёмка — выберите товар:", await restockProductKeyboard(target));
+        } else if (kind === "rp") {
+          // target = product id → ask how many to add (force reply with embedded id)
+          const { data: prod } = await supa().from("products").select("name, quantity").eq("id", target).single();
+          if (prod) {
+            await sendMessage(
+              chatId,
+              `📦 <b>${prod.name}</b>\nТекущий остаток: ${prod.quantity} шт\n\nОтветьте числом — сколько добавить.\n<code>${RESTOCK_TAG}${target}</code>`,
+              { reply_markup: { force_reply: true } },
+            );
+          }
         }
       }
       return new Response("ok");
@@ -239,6 +269,25 @@ Deno.serve(async (req) => {
     const chatId = msg?.chat?.id;
     if (!chatId) return new Response("ok");
 
+    // Reply to a restock prompt? (contains the embedded product id)
+    const repliedTo: string = msg?.reply_to_message?.text || "";
+    if (repliedTo.includes(RESTOCK_TAG)) {
+      const idMatch = repliedTo.match(/#restock:([0-9a-fA-F-]{36})/);
+      const amount = parseInt(text.replace(/[^\d-]/g, ""), 10);
+      if (idMatch && Number.isFinite(amount) && amount > 0) {
+        const pid = idMatch[1];
+        const { data: prod } = await supa().from("products").select("name, quantity").eq("id", pid).single();
+        if (prod) {
+          const newQty = (prod.quantity ?? 0) + amount;
+          await supa().from("products").update({ quantity: newQty }).eq("id", pid);
+          await sendMessage(chatId, `✅ <b>${prod.name}</b>\nБыло: ${prod.quantity} шт → стало: <b>${newQty} шт</b> (+${amount})`, KEYBOARD);
+        }
+      } else {
+        await sendMessage(chatId, "⚠️ Введите положительное число, например <code>20</code>.", KEYBOARD);
+      }
+      return new Response("ok");
+    }
+
     const low = text.toLowerCase();
     let period: Period | null = null;
     if (low.startsWith("/month") || text.includes("Месяц")) period = "month";
@@ -246,12 +295,15 @@ Deno.serve(async (req) => {
     else if (low.startsWith("/report") || text.includes("Сегодня") || text.includes("Отчёт")) period = "today";
 
     const isStock = low.startsWith("/stock") || text.includes("Остатки");
+    const isRestock = low.startsWith("/restock") || text.includes("Приёмка");
     const isStart = low.startsWith("/start") || low.startsWith("/menu");
 
     if (period) {
       await sendMessage(chatId, `📊 Отчёт за ${PERIOD_LABEL[period]} — выберите точку:`, await locationKeyboard("report", period));
     } else if (isStock) {
       await sendMessage(chatId, "📦 Выберите точку для остатков:", await locationKeyboard("stock"));
+    } else if (isRestock) {
+      await sendMessage(chatId, "➕ Приёмка — выберите точку:", await restockLocationKeyboard());
     } else if (isStart) {
       await sendMessage(chatId, "🏪 <b>МикроМаркет</b>\nВыберите действие кнопкой ниже 👇", KEYBOARD);
     } else {
