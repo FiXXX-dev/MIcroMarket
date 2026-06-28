@@ -881,15 +881,15 @@ function LocationsScreen({ onEnter, onLogout }) {
       fontFamily: "'Inter', system-ui, sans-serif",
     }}>
       <div style={{
-        background: "linear-gradient(180deg, #1c1c24 0%, #141419 100%)", padding: "14px 24px",
+        background: "linear-gradient(120deg, #2b0f4a 0%, #181235 45%, #0c1c3c 100%)", padding: "14px 24px",
         display: "flex", alignItems: "center", justifyContent: "space-between",
-        borderBottom: "1.5px solid rgba(255,45,85,0.55)",
-        boxShadow: "0 4px 24px rgba(255,45,85,0.18)",
+        borderBottom: "2px solid rgba(255,45,157,0.7)",
+        boxShadow: "0 0 22px rgba(255,45,157,0.40), 0 6px 30px rgba(0,229,255,0.18)",
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <span style={{ fontSize: 20 }}>🏪</span>
           <div>
-            <div style={{ fontSize: 15, fontWeight: 900, color: "#fff", lineHeight: 1.1 }}>МикроМаркет</div>
+            <div style={{ fontSize: 15, fontWeight: 900, color: "#fff", lineHeight: 1.1, textShadow: "0 0 14px rgba(255,45,157,0.7), 0 0 28px rgba(0,229,255,0.3)" }}>МикроМаркет</div>
             <div style={{ fontSize: 10, color: "rgba(255,255,255,0.55)", letterSpacing: "0.03em" }}>АДМИНИСТРАТОР</div>
           </div>
         </div>
@@ -1064,16 +1064,16 @@ export default function AdminApp() {
     }}>
       {/* Navbar */}
       <div style={{
-        background: "linear-gradient(180deg, #1c1c24 0%, #141419 100%)", padding: "0 24px",
+        background: "linear-gradient(120deg, #2b0f4a 0%, #181235 45%, #0c1c3c 100%)", padding: "0 24px",
         display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap",
-        borderBottom: "1.5px solid rgba(255,45,85,0.55)",
-        boxShadow: "0 4px 24px rgba(255,45,85,0.18)",
+        borderBottom: "2px solid rgba(255,45,157,0.7)",
+        boxShadow: "0 0 22px rgba(255,45,157,0.40), 0 6px 30px rgba(0,229,255,0.18)",
         position: "sticky", top: 0, zIndex: 100,
       }}>
         <div style={{ padding: "14px 0", display: "flex", alignItems: "center", gap: 10, marginRight: 8 }}>
           <span style={{ fontSize: 20 }}>🏪</span>
           <div>
-            <div style={{ fontSize: 15, fontWeight: 900, color: "#fff", lineHeight: 1.1 }}>МикроМаркет</div>
+            <div style={{ fontSize: 15, fontWeight: 900, color: "#fff", lineHeight: 1.1, textShadow: "0 0 14px rgba(255,45,157,0.7), 0 0 28px rgba(0,229,255,0.3)" }}>МикроМаркет</div>
             <div style={{ fontSize: 10, color: "rgba(255,255,255,0.55)", letterSpacing: "0.03em" }}>АДМИНИСТРАТОР</div>
           </div>
         </div>
