@@ -887,7 +887,7 @@ function LocationsScreen({ onEnter, onLogout }) {
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <span style={{ fontSize: 20 }}>🏪</span>
           <div>
-            <div style={{ fontSize: 15, fontWeight: 900, color: "#fff", lineHeight: 1.1, textShadow: "0 0 14px rgba(255,45,157,0.7), 0 0 28px rgba(0,229,255,0.3)" }}>МикроМаркет</div>
+            <div className="glitch" data-text="МикроМаркет" style={{ fontSize: 15, fontWeight: 900, color: "#fff", lineHeight: 1.1, textShadow: "0 0 14px rgba(255,45,157,0.7), 0 0 28px rgba(0,229,255,0.3)" }}>МикроМаркет</div>
             <div style={{ fontSize: 10, color: "rgba(255,255,255,0.55)", letterSpacing: "0.03em" }}>АДМИНИСТРАТОР</div>
           </div>
         </div>
@@ -1069,7 +1069,7 @@ export default function AdminApp() {
         <div style={{ padding: "14px 0", display: "flex", alignItems: "center", gap: 10, marginRight: 8 }}>
           <span style={{ fontSize: 20 }}>🏪</span>
           <div>
-            <div style={{ fontSize: 15, fontWeight: 900, color: "#fff", lineHeight: 1.1, textShadow: "0 0 14px rgba(255,45,157,0.7), 0 0 28px rgba(0,229,255,0.3)" }}>МикроМаркет</div>
+            <div className="glitch" data-text="МикроМаркет" style={{ fontSize: 15, fontWeight: 900, color: "#fff", lineHeight: 1.1, textShadow: "0 0 14px rgba(255,45,157,0.7), 0 0 28px rgba(0,229,255,0.3)" }}>МикроМаркет</div>
             <div style={{ fontSize: 10, color: "rgba(255,255,255,0.55)", letterSpacing: "0.03em" }}>АДМИНИСТРАТОР</div>
           </div>
         </div>

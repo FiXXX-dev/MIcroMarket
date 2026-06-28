@@ -17,7 +17,50 @@
   animation: neonShift 12s ease infinite, neonPulse 4s ease-in-out infinite;
 }
 
+/* ── Glitch logo ── */
+.glitch {
+  position: relative;
+  display: inline-block;
+}
+.glitch::before,
+.glitch::after {
+  content: attr(data-text);
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  mix-blend-mode: screen;
+}
+.glitch::before {
+  color: #00e5ff;
+  animation: glitchTop 3.5s infinite steps(1);
+}
+.glitch::after {
+  color: #ff2d9d;
+  animation: glitchBottom 3.5s infinite steps(1);
+}
+
+/* Most of the cycle the copies are clipped away (clean text);
+   a short burst near the end produces the glitch. */
+@keyframes glitchTop {
+  0%, 90%, 100% { clip-path: inset(0 0 100% 0); transform: translate(0, 0); }
+  91% { clip-path: inset(0 0 58% 0); transform: translate(-2px, -1px); }
+  93% { clip-path: inset(0 0 52% 0); transform: translate(2px, 1px); }
+  95% { clip-path: inset(0 0 66% 0); transform: translate(-1px, 0); }
+  97% { clip-path: inset(0 0 40% 0); transform: translate(1px, -1px); }
+}
+@keyframes glitchBottom {
+  0%, 90%, 100% { clip-path: inset(100% 0 0 0); transform: translate(0, 0); }
+  91% { clip-path: inset(54% 0 0 0); transform: translate(2px, 1px); }
+  93% { clip-path: inset(60% 0 0 0); transform: translate(-2px, -1px); }
+  95% { clip-path: inset(46% 0 0 0); transform: translate(1px, 1px); }
+  97% { clip-path: inset(64% 0 0 0); transform: translate(-1px, 0); }
+}
+
 /* Respect users who prefer reduced motion */
 @media (prefers-reduced-motion: reduce) {
   .neon-header { animation: none; }
+  .glitch::before, .glitch::after { animation: none; content: none; }
 }
