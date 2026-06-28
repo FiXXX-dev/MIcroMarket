@@ -791,6 +791,115 @@ function OrdersTab({ locationId }) {
   );
 }
 
+// ── DASHBOARD TAB ──────────────────────────────────────────────────
+function DashboardTab({ locationId }) {
+  const [orders, setOrders] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    const since = new Date();
+    since.setHours(0, 0, 0, 0);
+    since.setDate(since.getDate() - 13);
+    Promise.all([
+      supabase.from("orders").select("*").eq("location_id", locationId).eq("status", "paid").gte("created_at", since.toISOString()),
+      supabase.from("products").select("name, quantity").eq("location_id", locationId),
+    ]).then(([o, p]) => {
+      setOrders(o.data || []);
+      setProducts(p.data || []);
+      setLoading(false);
+    });
+  }, [locationId]);
+
+  const revenue = orders.reduce((s, o) => s + (o.total || 0), 0);
+  const count = orders.length;
+  const avg = count ? Math.round(revenue / count) : 0;
+  const lowCount = products.filter(p => p.quantity < 5).length;
+
+  // Daily revenue, last 14 days
+  const days = [];
+  for (let i = 13; i >= 0; i--) {
+    const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - i);
+    days.push({ label: d.toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit" }), ts: d.getTime(), revenue: 0 });
+  }
+  for (const o of orders) {
+    const d = new Date(o.created_at); d.setHours(0, 0, 0, 0);
+    const day = days.find(x => x.ts === d.getTime());
+    if (day) day.revenue += o.total || 0;
+  }
+  const maxRev = Math.max(1, ...days.map(d => d.revenue));
+
+  // Top products
+  const tally = new Map();
+  for (const o of orders) for (const it of (Array.isArray(o.items) ? o.items : [])) {
+    tally.set(it.name, (tally.get(it.name) || 0) + (it.qty || 1));
+  }
+  const top = [...tally.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
+  const maxTop = Math.max(1, ...top.map(t => t[1]));
+
+  const KPIS = [
+    { label: "Выручка (14 дн)", value: formatPrice(revenue), color: "#FF2D55" },
+    { label: "Заказов", value: count, color: "#1a1a1a" },
+    { label: "Средний чек", value: formatPrice(avg), color: "#16a34a" },
+    { label: "Мало на складе", value: lowCount, color: lowCount ? "#d97706" : "#16a34a" },
+  ];
+
+  if (loading) return <div style={{ padding: 48, textAlign: "center", color: "#bbb" }}>Загрузка...</div>;
+
+  return (
+    <div>
+      <h2 style={{ margin: "0 0 18px", fontSize: 20, fontWeight: 800, color: "#1a1a1a" }}>Дашборд</h2>
+
+      {/* KPI cards */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 14, marginBottom: 24 }}>
+        {KPIS.map(k => (
+          <div key={k.label} style={{ ...S.card, padding: "16px 18px" }}>
+            <div style={{ fontSize: 11, color: "#aaa", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 6 }}>{k.label}</div>
+            <div style={{ fontSize: 22, fontWeight: 900, color: k.color }}>{k.value}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Revenue bar chart */}
+      <div style={{ ...S.card, padding: "18px 20px", marginBottom: 20 }}>
+        <div style={{ fontSize: 14, fontWeight: 800, color: "#1a1a1a", marginBottom: 16 }}>Выручка по дням</div>
+        <div style={{ display: "flex", alignItems: "flex-end", gap: 4, height: 160 }}>
+          {days.map((d, i) => (
+            <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", height: "100%", justifyContent: "flex-end" }}>
+              <div title={formatPrice(d.revenue)} style={{
+                width: "100%", borderRadius: "4px 4px 0 0",
+                height: `${Math.round((d.revenue / maxRev) * 100)}%`,
+                minHeight: d.revenue > 0 ? 3 : 0,
+                background: d.revenue > 0 ? "linear-gradient(180deg, #FF2D55, #c81e5b)" : "transparent",
+              }} />
+              <div style={{ fontSize: 8, color: "#bbb", marginTop: 5, whiteSpace: "nowrap" }}>{d.label}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Top products */}
+      <div style={{ ...S.card, padding: "18px 20px" }}>
+        <div style={{ fontSize: 14, fontWeight: 800, color: "#1a1a1a", marginBottom: 16 }}>Топ товары (14 дн)</div>
+        {!top.length ? (
+          <div style={{ color: "#bbb", fontSize: 14, padding: "12px 0" }}>Продаж пока нет</div>
+        ) : top.map(([name, qty]) => (
+          <div key={name} style={{ marginBottom: 12 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 4 }}>
+              <span style={{ color: "#333", fontWeight: 600 }}>{name}</span>
+              <span style={{ color: "#FF2D55", fontWeight: 800 }}>{qty} шт</span>
+            </div>
+            <div style={{ background: "#f3f4f6", borderRadius: 6, height: 8, overflow: "hidden" }}>
+              <div style={{ height: "100%", width: `${(qty / maxTop) * 100}%`, background: "linear-gradient(90deg, #FFE83A, #FF2D55)", borderRadius: 6 }} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ── LOCATION FORM ──────────────────────────────────────────────────
 function LocationForm({ initial, onSave, onClose, saving }) {
   const [form, setForm] = useState({
@@ -1047,9 +1156,10 @@ export default function AdminApp() {
 
   if (!supabase) return <NotConfigured />;
   if (!authed)   return <LoginScreen onLogin={setAuthed} />;
-  if (!location) return <LocationsScreen onEnter={(l) => { setLocation(l); setTab("products"); }} onLogout={() => setAuthed(false)} />;
+  if (!location) return <LocationsScreen onEnter={(l) => { setLocation(l); setTab("dashboard"); }} onLogout={() => setAuthed(false)} />;
 
   const TABS = [
+    { id: "dashboard", label: "📊 Дашборд" },
     { id: "products", label: "🛍 Товары" },
     { id: "banners",  label: "📢 Баннеры" },
     { id: "orders",   label: "📋 Заказы" },
@@ -1106,9 +1216,10 @@ export default function AdminApp() {
       </div>
 
       <div style={{ maxWidth: 1040, margin: "0 auto", padding: "28px 24px" }}>
-        {tab === "products" && <ProductsTab locationId={location.id} />}
-        {tab === "banners"  && <BannersTab  locationId={location.id} />}
-        {tab === "orders"   && <OrdersTab   locationId={location.id} />}
+        {tab === "dashboard" && <DashboardTab locationId={location.id} />}
+        {tab === "products"  && <ProductsTab locationId={location.id} />}
+        {tab === "banners"   && <BannersTab  locationId={location.id} />}
+        {tab === "orders"    && <OrdersTab   locationId={location.id} />}
       </div>
     </div>
   );
