@@ -233,11 +233,7 @@ export default function KioskApp() {
         fontFamily: "'Inter', system-ui, sans-serif",
         display: "flex", flexDirection: "column", maxWidth: 480, margin: "0 auto",
       }}>
-        <div style={{
-          background: "linear-gradient(120deg, #2b0f4a 0%, #181235 45%, #0c1c3c 100%)", padding: "20px", textAlign: "center",
-          borderBottom: "1.5px solid rgba(255,45,85,0.55)",
-          boxShadow: "0 4px 24px rgba(255,45,85,0.20)",
-        }}>
+        <div className="neon-header" style={{ padding: "20px", textAlign: "center" }}>
           <div style={{ fontSize: 22, fontWeight: 900, color: "#fff" }}>🏪 МикроМаркет</div>
           <div style={{ fontSize: 12, color: "rgba(255,255,255,0.75)", marginTop: 2 }}>Выберите точку</div>
         </div>
@@ -283,14 +279,11 @@ export default function KioskApp() {
     }}>
 
       {/* ── HEADER ── */}
-      <div style={{
-        background: "linear-gradient(120deg, #2b0f4a 0%, #181235 45%, #0c1c3c 100%)",
+      <div className="neon-header" style={{
         padding: "14px 20px",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        borderBottom: "2px solid rgba(255,45,157,0.7)",
-        boxShadow: "0 0 22px rgba(255,45,157,0.40), 0 6px 30px rgba(0,229,255,0.20)",
       }}>
         <div>
           <div style={{ fontSize: 20, fontWeight: 900, color: "#fff", letterSpacing: "-0.5px", textShadow: "0 0 16px rgba(255,45,157,0.75), 0 0 32px rgba(0,229,255,0.35)" }}>
