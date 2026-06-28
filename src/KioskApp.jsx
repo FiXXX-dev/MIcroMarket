@@ -22,12 +22,12 @@ const FALLBACK_PRODUCTS = [
   { id: 15, name: "Чай зелёный",            price: 8000,  emoji: "🍵", category: "Кофе" },
 ];
 
-const FALLBACK_BANNER = { text: "Свежая еда и напитки — прямо здесь!", emoji: "🔥", color: "#FFD600" };
+const FALLBACK_BANNER = { text: "Свежая еда и напитки — прямо здесь!", emoji: "🔥", color: "#FFE83A" };
 
 const CATEGORIES = ["Все", "Напитки", "Снеки", "Еда", "Кофе"];
 
 const BADGE_MAP = {
-  hit:  { emoji: "🔥", label: "Хит",       bg: "#E8000D", color: "#fff" },
+  hit:  { emoji: "🔥", label: "Хит",       bg: "#FF2D55", color: "#fff" },
   new:  { emoji: "✨", label: "Новинка",    bg: "#7c3aed", color: "#fff" },
   sale: { emoji: "🏷", label: "Акция",      bg: "#d97706", color: "#fff" },
   last: { emoji: "⚠️", label: "Последний",  bg: "#ca8a04", color: "#1a1a1a" },
@@ -234,8 +234,9 @@ export default function KioskApp() {
         display: "flex", flexDirection: "column", maxWidth: 480, margin: "0 auto",
       }}>
         <div style={{
-          background: "#E8000D", padding: "20px", textAlign: "center",
-          boxShadow: "0 3px 12px rgba(232,0,13,0.3)",
+          background: "linear-gradient(180deg, #1c1c24 0%, #141419 100%)", padding: "20px", textAlign: "center",
+          borderBottom: "1.5px solid rgba(255,45,85,0.55)",
+          boxShadow: "0 4px 24px rgba(255,45,85,0.20)",
         }}>
           <div style={{ fontSize: 22, fontWeight: 900, color: "#fff" }}>🏪 МикроМаркет</div>
           <div style={{ fontSize: 12, color: "rgba(255,255,255,0.75)", marginTop: 2 }}>Выберите точку</div>
@@ -259,7 +260,7 @@ export default function KioskApp() {
                     <div style={{ fontSize: 16, fontWeight: 800, color: "#1a1a1a" }}>{l.name}</div>
                     {l.address && <div style={{ fontSize: 13, color: "#999", marginTop: 2 }}>{l.address}</div>}
                   </div>
-                  <span style={{ fontSize: 18, color: "#E8000D", fontWeight: 900 }}>→</span>
+                  <span style={{ fontSize: 18, color: "#FF2D55", fontWeight: 900 }}>→</span>
                 </button>
               ))}
             </div>
@@ -283,15 +284,16 @@ export default function KioskApp() {
 
       {/* ── HEADER ── */}
       <div style={{
-        background: "#E8000D",
+        background: "linear-gradient(180deg, #1c1c24 0%, #141419 100%)",
         padding: "14px 20px",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        boxShadow: "0 3px 12px rgba(232,0,13,0.3)",
+        borderBottom: "1.5px solid rgba(255,45,85,0.55)",
+        boxShadow: "0 4px 24px rgba(255,45,85,0.20)",
       }}>
         <div>
-          <div style={{ fontSize: 20, fontWeight: 900, color: "#fff", letterSpacing: "-0.5px" }}>
+          <div style={{ fontSize: 20, fontWeight: 900, color: "#fff", letterSpacing: "-0.5px", textShadow: "0 0 14px rgba(255,45,85,0.55)" }}>
             🏪 МикроМаркет
           </div>
           <div style={{ fontSize: 11, color: "rgba(255,255,255,0.7)", marginTop: 1 }}>
@@ -300,7 +302,7 @@ export default function KioskApp() {
         </div>
         {screen !== "payment" && screen !== "success" && (
           <button onClick={() => cartCount > 0 && setScreen("cart")} style={{
-            background: cartCount > 0 ? "#FFD600" : "rgba(255,255,255,0.15)",
+            background: cartCount > 0 ? "#FFE83A" : "rgba(255,255,255,0.15)",
             border: "none",
             borderRadius: 12,
             padding: "9px 14px",
@@ -357,7 +359,7 @@ export default function KioskApp() {
                 padding: "7px 16px",
                 borderRadius: 20,
                 border: "none",
-                background: category === cat ? "#E8000D" : "#f5f5f5",
+                background: category === cat ? "#FF2D55" : "#f5f5f5",
                 color: category === cat ? "#fff" : "#666",
                 fontSize: 13, fontWeight: 700, cursor: "pointer",
                 whiteSpace: "nowrap", fontFamily: "inherit",
@@ -381,9 +383,9 @@ export default function KioskApp() {
                   background: "#fff",
                   borderRadius: 16,
                   padding: "14px 12px",
-                  border: inCart ? "2px solid #E8000D" : "2px solid #f0f0f0",
+                  border: inCart ? "2px solid #FF2D55" : "2px solid #f0f0f0",
                   boxShadow: inCart
-                    ? "0 4px 16px rgba(232,0,13,0.15)"
+                    ? "0 4px 16px rgba(255,45,85,0.15)"
                     : "0 2px 8px rgba(0,0,0,0.06)",
                   transition: "all 0.15s",
                   position: "relative",
@@ -421,7 +423,7 @@ export default function KioskApp() {
                   <div style={{ fontSize: 13, fontWeight: 600, color: "#333", marginBottom: 4, lineHeight: 1.3 }}>
                     {product.name}
                   </div>
-                  <div style={{ fontSize: 15, fontWeight: 900, color: "#E8000D", marginBottom: 10 }}>
+                  <div style={{ fontSize: 15, fontWeight: 900, color: "#FF2D55", marginBottom: 10 }}>
                     {formatPrice(product.price)}
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -438,12 +440,12 @@ export default function KioskApp() {
                           background: "#f5f5f5", color: "#333", fontSize: 18,
                           cursor: "pointer", fontWeight: 800, fontFamily: "inherit",
                         }}>−</button>
-                        <span style={{ fontSize: 16, fontWeight: 900, minWidth: 24, textAlign: "center", color: "#E8000D" }}>
+                        <span style={{ fontSize: 16, fontWeight: 900, minWidth: 24, textAlign: "center", color: "#FF2D55" }}>
                           {inCart.qty}
                         </span>
                         <button onClick={() => addToCart(product)} disabled={inCart.qty >= (product.quantity ?? Infinity)} style={{
                           width: 32, height: 32, borderRadius: 8, border: "none",
-                          background: inCart.qty >= (product.quantity ?? Infinity) ? "#f0c0c4" : "#E8000D",
+                          background: inCart.qty >= (product.quantity ?? Infinity) ? "#f0c0c4" : "#FF2D55",
                           color: "#fff", fontSize: 18,
                           cursor: inCart.qty >= (product.quantity ?? Infinity) ? "default" : "pointer",
                           fontWeight: 800, fontFamily: "inherit",
@@ -452,7 +454,7 @@ export default function KioskApp() {
                     ) : (
                       <button onClick={() => addToCart(product)} style={{
                         width: "100%", padding: "8px 0", borderRadius: 10,
-                        border: "none", background: "#FFD600", color: "#1a1a1a",
+                        border: "none", background: "#FFE83A", color: "#1a1a1a",
                         fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
                       }}>+ Добавить</button>
                     )}
@@ -469,7 +471,7 @@ export default function KioskApp() {
         <div style={{ flex: 1, display: "flex", flexDirection: "column", background: "#f8f8f8" }}>
           <div style={{ background: "#fff", padding: "14px 16px", borderBottom: "1px solid #f0f0f0" }}>
             <button onClick={() => setScreen("catalog")} style={{
-              background: "none", border: "none", color: "#E8000D",
+              background: "none", border: "none", color: "#FF2D55",
               fontSize: 14, cursor: "pointer", fontWeight: 700, fontFamily: "inherit",
               padding: "0 0 10px", display: "block",
             }}>← Назад к каталогу</button>
@@ -505,16 +507,16 @@ export default function KioskApp() {
                     background: "#f5f5f5", color: "#333", fontSize: 16,
                     cursor: "pointer", fontFamily: "inherit", fontWeight: 800,
                   }}>−</button>
-                  <span style={{ fontSize: 14, fontWeight: 800, minWidth: 20, textAlign: "center", color: "#E8000D" }}>
+                  <span style={{ fontSize: 14, fontWeight: 800, minWidth: 20, textAlign: "center", color: "#FF2D55" }}>
                     {item.qty}
                   </span>
                   <button onClick={() => addToCart(item)} style={{
                     width: 28, height: 28, borderRadius: 7, border: "none",
-                    background: "#E8000D", color: "#fff", fontSize: 16,
+                    background: "#FF2D55", color: "#fff", fontSize: 16,
                     cursor: "pointer", fontFamily: "inherit", fontWeight: 800,
                   }}>+</button>
                 </div>
-                <div style={{ fontSize: 14, fontWeight: 900, color: "#E8000D", minWidth: 72, textAlign: "right" }}>
+                <div style={{ fontSize: 14, fontWeight: 900, color: "#FF2D55", minWidth: 72, textAlign: "right" }}>
                   {formatPrice(item.price * item.qty)}
                 </div>
               </div>
@@ -527,13 +529,13 @@ export default function KioskApp() {
               display: "flex", justifyContent: "space-between", alignItems: "center",
             }}>
               <span style={{ fontSize: 16, fontWeight: 700, color: "#333" }}>Итого</span>
-              <span style={{ fontSize: 20, fontWeight: 900, color: "#E8000D" }}>{formatPrice(total)}</span>
+              <span style={{ fontSize: 20, fontWeight: 900, color: "#FF2D55" }}>{formatPrice(total)}</span>
             </div>
             <button onClick={() => setScreen("payment")} style={{
               width: "100%", padding: 16, borderRadius: 14, border: "none",
-              background: "#E8000D", color: "#fff", fontSize: 16, fontWeight: 800,
+              background: "#FF2D55", color: "#fff", fontSize: 16, fontWeight: 800,
               cursor: "pointer", fontFamily: "inherit", marginBottom: 8,
-              boxShadow: "0 4px 16px rgba(232,0,13,0.35)",
+              boxShadow: "0 4px 16px rgba(255,45,85,0.35)",
             }}>
               Оплатить через Payme / Click →
             </button>
@@ -556,7 +558,7 @@ export default function KioskApp() {
           padding: 24, textAlign: "center", background: "#fff",
         }}>
           <div style={{ fontSize: 13, color: "#999", marginBottom: 6 }}>К оплате</div>
-          <div style={{ fontSize: 36, fontWeight: 900, color: "#E8000D", marginBottom: 4 }}>
+          <div style={{ fontSize: 36, fontWeight: 900, color: "#FF2D55", marginBottom: 4 }}>
             {formatPrice(total)}
           </div>
           <div style={{ fontSize: 13, color: "#999", marginBottom: 22 }}>
@@ -565,8 +567,8 @@ export default function KioskApp() {
 
           <div style={{
             background: "#fff", borderRadius: 20, padding: 16, marginBottom: 18,
-            boxShadow: "0 8px 32px rgba(232,0,13,0.15)",
-            border: "3px solid #FFD600",
+            boxShadow: "0 8px 32px rgba(255,45,85,0.15)",
+            border: "3px solid #FFE83A",
           }}>
             <QRPattern value={paymentRef + total} size={190} />
           </div>
@@ -581,7 +583,7 @@ export default function KioskApp() {
             }}>
               <div style={{
                 height: "100%", borderRadius: 10,
-                background: "linear-gradient(90deg, #FFD600, #E8000D)",
+                background: "linear-gradient(90deg, #FFE83A, #FF2D55)",
                 width: `${(timeLeft / 60) * 100}%`,
                 transition: "width 1s linear",
               }} />
@@ -613,10 +615,10 @@ export default function KioskApp() {
         }}>
           <div style={{
             width: 96, height: 96, borderRadius: "50%",
-            background: "#FFD600",
+            background: "#FFE83A",
             display: "flex", alignItems: "center", justifyContent: "center",
             fontSize: 48, marginBottom: 22,
-            boxShadow: "0 8px 32px rgba(255,214,0,0.4)",
+            boxShadow: "0 8px 32px rgba(255,232,58,0.4)",
           }}>✅</div>
 
           <div style={{ fontSize: 28, fontWeight: 900, color: "#1a1a1a", marginBottom: 8 }}>
@@ -624,7 +626,7 @@ export default function KioskApp() {
           </div>
           <div style={{ fontSize: 15, color: "#666", marginBottom: 28, lineHeight: 1.7 }}>
             Возьмите ваши товары с полки.<br />
-            <span style={{ color: "#E8000D", fontWeight: 700 }}>Приятного аппетита! 🍽</span>
+            <span style={{ color: "#FF2D55", fontWeight: 700 }}>Приятного аппетита! 🍽</span>
           </div>
 
           <div style={{
@@ -637,9 +639,9 @@ export default function KioskApp() {
 
           <button onClick={() => setScreen("catalog")} style={{
             padding: "16px 48px", borderRadius: 14, fontFamily: "inherit",
-            border: "none", background: "#E8000D",
+            border: "none", background: "#FF2D55",
             color: "#fff", fontSize: 16, fontWeight: 900, cursor: "pointer",
-            boxShadow: "0 4px 20px rgba(232,0,13,0.35)",
+            boxShadow: "0 4px 20px rgba(255,45,85,0.35)",
           }}>← На главную</button>
         </div>
       )}
@@ -656,13 +658,13 @@ export default function KioskApp() {
             background: "#fff", borderRadius: 24, padding: "32px 28px",
             width: "100%", maxWidth: 360, textAlign: "center",
             boxShadow: "0 20px 60px rgba(0,0,0,0.35)",
-            border: "3px solid #FFD600",
+            border: "3px solid #FFE83A",
           }}>
             <div style={{
-              width: 88, height: 88, borderRadius: "50%", background: "#FFD600",
+              width: 88, height: 88, borderRadius: "50%", background: "#FFE83A",
               display: "flex", alignItems: "center", justifyContent: "center",
               fontSize: 44, margin: "0 auto 18px",
-              boxShadow: "0 8px 28px rgba(255,214,0,0.45)",
+              boxShadow: "0 8px 28px rgba(255,232,58,0.45)",
             }}>🛒</div>
 
             <div style={{ fontSize: 24, fontWeight: 900, color: "#1a1a1a", marginBottom: 10 }}>
@@ -671,7 +673,7 @@ export default function KioskApp() {
             <div style={{ fontSize: 15, color: "#666", marginBottom: 6, lineHeight: 1.5 }}>
               Ваша корзина будет очищена через
             </div>
-            <div style={{ fontSize: 44, fontWeight: 900, color: "#E8000D", marginBottom: 24, lineHeight: 1 }}>
+            <div style={{ fontSize: 44, fontWeight: 900, color: "#FF2D55", marginBottom: 24, lineHeight: 1 }}>
               {Math.max(0, idleCountdown)}
               <span style={{ fontSize: 15, fontWeight: 700, color: "#999", marginLeft: 6 }}>сек</span>
             </div>
@@ -679,9 +681,9 @@ export default function KioskApp() {
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               <button onClick={idleContinue} style={{
                 width: "100%", padding: 16, borderRadius: 14, border: "none",
-                background: "#E8000D", color: "#fff", fontSize: 16, fontWeight: 800,
+                background: "#FF2D55", color: "#fff", fontSize: 16, fontWeight: 800,
                 cursor: "pointer", fontFamily: "inherit",
-                boxShadow: "0 4px 16px rgba(232,0,13,0.35)",
+                boxShadow: "0 4px 16px rgba(255,45,85,0.35)",
               }}>Продолжить покупку</button>
               <button onClick={idleClearExit} style={{
                 width: "100%", padding: 14, borderRadius: 14,
